@@ -2,10 +2,20 @@ package main
 
 import (
 	"fmt"
-	"time"
-	"strings"
 	"github.com/ratanvarghese/tqtime"
+	"strings"
+	"time"
 )
+
+type articleMeta struct {
+	src          string
+	url          string
+	pagetitle    string
+	articletitle string
+	publish      bool
+	date         string
+	topics       []string
+}
 
 func main() {
 	t := time.Now()
