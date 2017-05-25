@@ -7,6 +7,10 @@ import (
 	"log"
 	"strings"
 	"time"
+	"html/template"
+	"io/ioutil"
+	"bufio"
+	"os"
 )
 
 type Author struct {
@@ -31,7 +35,7 @@ type ArticleItem struct {
 
 type JSONFeed struct {
 	Version       string        `json:"version"`
-	Title  string        `json:"title"`
+	Title         string        `json:"title"`
 	Home_page_url string        `json:"home_page_url"`
 	Feed_url      string        `json:"feed_url"`
 	Next_url      string        `json:"next_url"`
@@ -41,7 +45,57 @@ type JSONFeed struct {
 	Items         []ArticleItem `json:"items"`
 }
 
+type ArticleExport struct {
+	Title string
+	Content_html template.HTML
+}
+
 func main() {
+	//demoDate()
+	//demoFeed()
+
+	demoTemplate()
+}
+
+func demoTemplate() {
+	t, err := template.ParseFiles("template.html")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	content,err := ioutil.ReadFile("hello.html")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	article1 := ArticleItem{}
+	article1.Id = "http://ratan.blog/hello"
+	article1.Url = "http://ratan.blog/hello"
+	article1.Title = "Hello"
+	article1.Content_html = string(content)
+	article1.Date_published = "2017-05-25T8:04:00-05:00"
+	article1.Date_modified = "2017-05-25T8:11:00-11:30"
+	article1.Tags = []string{"nonsense", "meta"}
+
+	f, err := os.Create("output.html")
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	w := bufio.NewWriter(f)
+
+	articleE := ArticleExport{article1.Title, template.HTML(article1.Content_html)}
+
+	err = t.Execute(w,articleE)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	w.Flush()
+}
+
+func demoDate() {
 	t := time.Now()
 	long := tqtime.LongDate(t.Year(), t.YearDay())
 	longish := strings.Replace(long, "After Tranquility", "AT", 1)
@@ -49,7 +103,9 @@ func main() {
 
 	gregorian := t.Format("Monday, 2 January, 2006 CE")
 	fmt.Println(gregorian)
+}
 
+func demoFeed() {
 	j := JSONFeed{}
 	j.Version = "https://jsonfeed.org/Version/1"
 	j.Title = "ratan.blog"
@@ -92,6 +148,7 @@ func main() {
 	b, err := json.MarshalIndent(j, "", "\t")
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 	fmt.Println(string(b))
 }
