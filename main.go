@@ -33,6 +33,7 @@ type JSONFeed struct {
 	Version       string        `json:"version"`
 	Title         string        `json:"title"`
 	Description string `json:"description"`
+	User_comment string `json:"user_comment"`
 	Home_page_url string        `json:"home_page_url"`
 	Feed_url      string        `json:"feed_url"`
 	Next_url      string        `json:"next_url"`
