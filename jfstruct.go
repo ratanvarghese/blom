@@ -31,4 +31,3 @@ type JSONFeed struct {
 	Author        Author        `json:"author"`
 	Items         []ArticleItem `json:"items"`
 }
-

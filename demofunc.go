@@ -18,7 +18,6 @@ type ArticleExport struct {
 	Content_html template.HTML
 }
 
-
 func demoTemplate() {
 	t, err := template.ParseFiles("template.html")
 	if err != nil {
