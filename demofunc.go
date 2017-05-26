@@ -1,60 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
-	"html/template"
-	"io/ioutil"
 	"log"
-	"os"
 	"strings"
 	"time"
 )
-
-type ArticleExport struct {
-	Title        string
-	Content_html template.HTML
-}
-
-func demoTemplate() {
-	t, err := template.ParseFiles("template.html")
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	content, err := ioutil.ReadFile("hello.html")
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	article1 := ArticleItem{}
-	article1.Id = "http://ratan.blog/hello"
-	article1.Url = "http://ratan.blog/hello"
-	article1.Title = "Hello"
-	article1.Content_html = string(content)
-	article1.Date_published = "2017-05-25T8:04:00-05:00"
-	article1.Date_modified = "2017-05-25T8:11:00-11:30"
-	article1.Tags = []string{"nonsense", "meta"}
-
-	f, err := os.Create("output.html")
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	w := bufio.NewWriter(f)
-
-	articleE := ArticleExport{article1.Title, template.HTML(article1.Content_html)}
-
-	err = t.Execute(w, articleE)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	w.Flush()
-}
 
 func demoDate() {
 	t := time.Now()
