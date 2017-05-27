@@ -53,6 +53,12 @@ func killOnError(err error) {
 	}
 }
 
+func printOnError(err error) {
+	if err != nil {
+		log.Print(err)
+	}
+}
+
 func runTemplate(ta templateArgs) {
 	if !*(ta.applyTemplate) {
 		return
@@ -73,6 +79,7 @@ func runTemplate(ta templateArgs) {
 	const outputGDateFormat = "Monday, 2 January, 2006 CE"
 	gDate, err := time.Parse(gDateFormat, *(ta.date))
 	killOnError(err)
+
 	tqDate := tqtime.LongDate(gDate.Year(), gDate.YearDay())
 	tqDateBetter := strings.Replace(tqDate, "After Tranquility", "AT", 1)
 	gDateStr := gDate.Format(outputGDateFormat)
@@ -82,17 +89,11 @@ func runTemplate(ta templateArgs) {
 	articleE.ContentHTML = template.HTML(content)
 
 	err = t.Execute(w, articleE)
-	if err != nil {
-		log.Print(err)
-	}
+	printOnError(err)
 
 	err = w.Flush()
-	if err != nil {
-		log.Print(err)
-	}
+	printOnError(err)
 
 	err = f.Close()
-	if err != nil {
-		log.Print(err)
-	}
+	printOnError(err)
 }
