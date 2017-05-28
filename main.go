@@ -6,6 +6,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 2 {
+		log.Fatal("Specify a mode")
+	}
+
 	ta, fTemplate := makeTemplateArgs()
 
 	switch os.Args[1] {
