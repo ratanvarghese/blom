@@ -9,6 +9,7 @@ import (
 )
 
 const gDateYYYYMMDDFormat = "2006-01-02"
+const argListSep = ","
 
 func killOnError(err error) {
 	if err != nil {
@@ -42,4 +43,12 @@ func webpageDate(dateYYYYMMDD string) (string, error) {
 func headerDate() string {
 	actualInfo, _ := webpageDate(todayYYYYMMDD())
 	return fmt.Sprintf("Today is %s", actualInfo)
+}
+
+func jsfDate(dateYYYYMMDD string) (string, error) {
+	t, err := time.Parse(gDateYYYYMMDDFormat, dateYYYYMMDD)
+	if err != nil {
+		return "", err
+	}
+	return t.Format(time.RFC3339), nil
 }
