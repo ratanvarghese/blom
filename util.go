@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -50,4 +52,10 @@ func jsfDate(dateYYYYMMDD string) (string, error) {
 		return "", err
 	}
 	return t.Format(time.RFC3339), nil
+}
+
+func curDir() string {
+	path, err := os.Getwd()
+	killOnError(err)
+	return filepath.Base(path)
 }
