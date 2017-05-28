@@ -13,7 +13,7 @@ import (
 const itemMode = "item"
 
 type jsfItemArgs struct {
-	siteUrl       *string
+	siteURL       *string
 	title         *string
 	contentFile   *string
 	datePublished *string
@@ -26,7 +26,7 @@ func makeJSFItem() (jsfItemArgs, *flag.FlagSet) {
 	var j jsfItemArgs
 	f1 := flag.NewFlagSet(itemMode, flag.ContinueOnError)
 
-	j.siteUrl = f1.String("siteurl", "http://ratan.blog", "Your website URL")
+	j.siteURL = f1.String("siteurl", "http://ratan.blog", "Your website URL")
 	j.title = f1.String("title", "Untitled", "The title of the article")
 	j.contentFile = f1.String("content", "content.html", "File with the article content")
 	j.datePublished = f1.String("pdate", todayYYYYMMDD(), "Publish date (gregorian) in YYYY-MM-DD format")
@@ -38,13 +38,13 @@ func makeJSFItem() (jsfItemArgs, *flag.FlagSet) {
 }
 
 type jsfAttachment struct {
-	Url      string `json:"url"`
+	URL      string `json:"url"`
 	MIMEType string `json:"mime_type"`
 }
 
 type jsfItem struct {
 	ID            string          `json:"id"`
-	Url           string          `json:"url"`
+	URL           string          `json:"url"`
 	Title         string          `json:"title"`
 	ContentHTML   string          `json:"content_html"`
 	DatePublished string          `json:"date_published"`
@@ -57,8 +57,8 @@ func buildItem(ja jsfItemArgs) {
 	var ji jsfItem
 	ji.Title = *(ja.title)
 	cleanTitle := strings.Replace(strings.ToLower(ji.Title), " ", "-", -1)
-	ji.ID = path.Join(*(ja.siteUrl), cleanTitle)
-	ji.Url = ji.ID
+	ji.ID = path.Join(*(ja.siteURL), cleanTitle)
+	ji.URL = ji.ID
 	ji.Tags = strings.Split(*(ja.tags), ",")
 
 	var err error
@@ -71,7 +71,7 @@ func buildItem(ja jsfItemArgs) {
 	aList := strings.Split(*(ja.attachments), ",")
 	for _, attachName := range aList {
 		if len(attachName) > 0 {
-			a := buildAttachment(attachName, ji.Url)
+			a := buildAttachment(attachName, ji.URL)
 			ji.Attachments = append(ji.Attachments, a)
 		}
 	}
@@ -87,16 +87,18 @@ func buildItem(ja jsfItemArgs) {
 	killOnError(err)
 }
 
-func buildAttachment(filename string, baseUrl string) jsfAttachment {
+func buildAttachment(filename string, baseURL string) jsfAttachment {
 	var res jsfAttachment
 
-	res.Url = path.Join(baseUrl, filename)
+	res.URL = path.Join(baseURL, filename)
 	f, err := os.Open(filename)
 	killOnError(err)
 
 	b1 := make([]byte, 512)
 	_, err = f.Read(b1)
-	f.Close()
+	printOnError(err)
+
+	err = f.Close()
 	killOnError(err)
 
 	res.MIMEType = http.DetectContentType(b1)

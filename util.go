@@ -9,7 +9,6 @@ import (
 )
 
 const gDateYYYYMMDDFormat = "2006-01-02"
-const argListSep = ","
 
 func killOnError(err error) {
 	if err != nil {

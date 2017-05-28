@@ -14,7 +14,6 @@ type templateArgs struct {
 	templateFile *string
 	contentFile  *string
 	articleTitle *string
-	outputFile   *string
 	styleSheet   *string
 	date         *string
 }
@@ -26,7 +25,6 @@ func makeTemplateArgs() (templateArgs, *flag.FlagSet) {
 	ta.templateFile = f1.String("template", "template.html", "File to use as a template")
 	ta.contentFile = f1.String("content", "content.html", "File with HTML content to insert in template")
 	ta.articleTitle = f1.String("title", "Untitled", "Title of the article")
-	ta.outputFile = f1.String("output", "index.html", "Filename of output of the executed template")
 	ta.styleSheet = f1.String("style", "../style.css", "Filename of stylesheet")
 	ta.date = f1.String("date", todayYYYYMMDD(), "Gregorian date in format YYYY-MM-DD, defaults to today")
 
@@ -48,9 +46,6 @@ func runTemplate(ta templateArgs) {
 	content, err := ioutil.ReadFile(*(ta.contentFile))
 	killOnError(err)
 
-	f, err := os.Create(*(ta.outputFile))
-	killOnError(err)
-
 	var articleE articleExport
 	articleE.Title = *(ta.articleTitle)
 	articleE.Stylesheet = *(ta.styleSheet)
@@ -58,15 +53,12 @@ func runTemplate(ta templateArgs) {
 	articleE.Today = headerDate()
 	killOnError(err)
 
-	w := bufio.NewWriter(f)
+	w := bufio.NewWriter(os.Stdout)
 	articleE.ContentHTML = template.HTML(content)
 
 	err = t.Execute(w, articleE)
 	printOnError(err)
 
 	err = w.Flush()
-	printOnError(err)
-
-	err = f.Close()
 	printOnError(err)
 }
