@@ -7,7 +7,6 @@ import (
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -44,18 +43,6 @@ type articleExport struct {
 	Stylesheet  string
 	Date        string
 	ContentHTML template.HTML
-}
-
-func killOnError(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func printOnError(err error) {
-	if err != nil {
-		log.Print(err)
-	}
 }
 
 func runTemplate(ta templateArgs) {
