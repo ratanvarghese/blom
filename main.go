@@ -1,13 +1,19 @@
 package main
 
 import (
-	"flag"
+	"log"
+	"os"
 )
 
 func main() {
-	ta := makeTemplateArgs()
+	ta, fTemplate := makeTemplateArgs()
 
-	flag.Parse()
-
-	runTemplate(ta)
+	switch os.Args[1] {
+	case templateMode:
+		if err := fTemplate.Parse(os.Args[2:]); err == nil {
+			runTemplate(ta)
+		}
+	default:
+		log.Fatal("Unsupported mode")
+	}
 }

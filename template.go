@@ -13,28 +13,30 @@ import (
 	"time"
 )
 
-type templateArgs struct {
-	applyTemplate *bool
-	templateFile  *string
-	contentFile   *string
-	articleTitle  *string
-	outputFile    *string
-	styleSheet    *string
-	date          *string
-}
-
+const templateMode = "template"
 const gDateFormat = "2006-01-02"
 
-func makeTemplateArgs() templateArgs {
+type templateArgs struct {
+	templateFile *string
+	contentFile  *string
+	articleTitle *string
+	outputFile   *string
+	styleSheet   *string
+	date         *string
+}
+
+func makeTemplateArgs() (templateArgs, *flag.FlagSet) {
 	var ta templateArgs
-	ta.applyTemplate = flag.Bool("apply", false, "Run in TEMPLATE MODE")
-	ta.templateFile = flag.String("template", "template.html", "TEMPLATE MODE: File to use as a template")
-	ta.contentFile = flag.String("content", "content.html", "TEMPLATE MODE: File with HTML content to insert in template")
-	ta.articleTitle = flag.String("title", "Untitled", "TEMPLATE MODE: Title of the article")
-	ta.outputFile = flag.String("output", "index.html", "TEMPLATE MODE: Filename of output of the executed template")
-	ta.styleSheet = flag.String("style", "../style.css", "TEMPLATE MODE: Filename of stylesheet")
-	ta.date = flag.String("date", time.Now().Format(gDateFormat), "TEMPLATE MODE: Gregorian date in format YYYY-MM-DD, defaults to today")
-	return ta
+	f1 := flag.NewFlagSet("template", flag.ContinueOnError)
+
+	ta.templateFile = f1.String("template", "template.html", "File to use as a template")
+	ta.contentFile = f1.String("content", "content.html", "File with HTML content to insert in template")
+	ta.articleTitle = f1.String("title", "Untitled", "Title of the article")
+	ta.outputFile = f1.String("output", "index.html", "Filename of output of the executed template")
+	ta.styleSheet = f1.String("style", "../style.css", "Filename of stylesheet")
+	ta.date = f1.String("date", time.Now().Format(gDateFormat), "Gregorian date in format YYYY-MM-DD, defaults to today")
+
+	return ta, f1
 }
 
 type articleExport struct {
@@ -57,9 +59,6 @@ func printOnError(err error) {
 }
 
 func runTemplate(ta templateArgs) {
-	if !*(ta.applyTemplate) {
-		return
-	}
 	t, err := template.ParseFiles(*(ta.templateFile))
 	killOnError(err)
 
