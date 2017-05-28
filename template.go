@@ -3,17 +3,12 @@ package main
 import (
 	"bufio"
 	"flag"
-	"fmt"
-	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
 	"os"
-	"strings"
-	"time"
 )
 
 const templateMode = "template"
-const gDateFormat = "2006-01-02"
 
 type templateArgs struct {
 	templateFile *string
@@ -26,14 +21,14 @@ type templateArgs struct {
 
 func makeTemplateArgs() (templateArgs, *flag.FlagSet) {
 	var ta templateArgs
-	f1 := flag.NewFlagSet("template", flag.ContinueOnError)
+	f1 := flag.NewFlagSet(templateMode, flag.ContinueOnError)
 
 	ta.templateFile = f1.String("template", "template.html", "File to use as a template")
 	ta.contentFile = f1.String("content", "content.html", "File with HTML content to insert in template")
 	ta.articleTitle = f1.String("title", "Untitled", "Title of the article")
 	ta.outputFile = f1.String("output", "index.html", "Filename of output of the executed template")
 	ta.styleSheet = f1.String("style", "../style.css", "Filename of stylesheet")
-	ta.date = f1.String("date", time.Now().Format(gDateFormat), "Gregorian date in format YYYY-MM-DD, defaults to today")
+	ta.date = f1.String("date", todayYYYYMMDD(), "Gregorian date in format YYYY-MM-DD, defaults to today")
 
 	return ta, f1
 }
@@ -42,6 +37,7 @@ type articleExport struct {
 	Title       string
 	Stylesheet  string
 	Date        string
+	Today       string
 	ContentHTML template.HTML
 }
 
@@ -58,15 +54,9 @@ func runTemplate(ta templateArgs) {
 	var articleE articleExport
 	articleE.Title = *(ta.articleTitle)
 	articleE.Stylesheet = *(ta.styleSheet)
-
-	const outputGDateFormat = "Monday, 2 January, 2006 CE"
-	gDate, err := time.Parse(gDateFormat, *(ta.date))
+	articleE.Date, err = webpageDate(*(ta.date))
+	articleE.Today = headerDate()
 	killOnError(err)
-
-	tqDate := tqtime.LongDate(gDate.Year(), gDate.YearDay())
-	tqDateBetter := strings.Replace(tqDate, "After Tranquility", "AT", 1)
-	gDateStr := gDate.Format(outputGDateFormat)
-	articleE.Date = fmt.Sprintf("%s [Gregorian: %s]", tqDateBetter, gDateStr)
 
 	w := bufio.NewWriter(f)
 	articleE.ContentHTML = template.HTML(content)
