@@ -213,7 +213,6 @@ func buildArticle(args articleArgs) {
 		panic(err)
 	}
 
-	fmt.Print("args: %+v\n", args)
 	oldAttach, oldTitle, oldTags, datePublished := argsFromItemFile()
 	if len(*args.attach) < 1 {
 		args.attach = &oldAttach
