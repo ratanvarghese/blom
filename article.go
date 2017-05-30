@@ -25,10 +25,11 @@ const listSeperator = ","
 const outputWebpage = "index.html"
 
 type articleArgs struct {
-	attach     *string
-	title      *string
-	tags       *string
-	localstyle *bool
+	attach   *string
+	title    *string
+	tags     *string
+	style    *string
+	template *string
 }
 
 type jsfAttachment struct {
@@ -63,7 +64,8 @@ func makeArticleArgs() (articleArgs, *flag.FlagSet) {
 	args.attach = fset.String("attach", "", "Comma-seperated files to attach")
 	args.title = fset.String("title", "", "Title of the article")
 	args.tags = fset.String("tags", "", "Comma-seperated tags")
-	args.localstyle = fset.Bool("localstyle", false, "Use stylesheet in same folder as output")
+	args.style = fset.String("style", "../style.css", "Filename of stylesheet")
+	args.template = fset.String("template", "../../template.html", "Filename of template file")
 
 	return args, fset
 }
@@ -127,11 +129,16 @@ func makeItem(args articleArgs, datePublished string, content string) jsfItem {
 	if err != nil {
 		panic(err)
 	}
-	res.DateModified = info.ModTime().Format(time.RFC3339)
-	if strings.Compare(res.DateModified, res.DatePublished) < 0 {
+	tMod := info.ModTime()
+	tPub, err := time.Parse(time.RFC3339, res.DatePublished)
+	if err != nil {
+		panic(err)
+	}
+	if tMod.Before(tPub) {
 		res.DateModified = res.DatePublished
-		//As far as the outside world is concerned, the article does not exist
-		//before it is published.
+		fmt.Println("Hey!")
+	} else {
+		res.DateModified = info.ModTime().Format(time.RFC3339)
 	}
 
 	f, err := os.Create(itemFile)
@@ -189,16 +196,12 @@ func dualDateFormat(RFCDate string) string {
 func runTemplate(ji jsfItem, args articleArgs, content string) {
 	var articleE articleExport
 	articleE.Title = ji.Title
-	if *(args.localstyle) {
-		articleE.Stylesheet = "style.css"
-	} else {
-		articleE.Stylesheet = "../style.css"
-	}
-	articleE.Date = dualDateFormat(ji.DateModified)
+	articleE.Stylesheet = *(args.style)
+	articleE.Date = dualDateFormat(ji.DatePublished)
 	articleE.Today = fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339)))
 	articleE.ContentHTML = template.HTML(content)
 
-	tmpl, err := template.ParseFiles(templateFile)
+	tmpl, err := template.ParseFiles(*(args.template))
 	if err != nil {
 		panic(err)
 	}
