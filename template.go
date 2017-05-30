@@ -31,14 +31,6 @@ func makeTemplateArgs() (templateArgs, *flag.FlagSet) {
 	return ta, f1
 }
 
-type articleExport struct {
-	Title       string
-	Stylesheet  string
-	Date        string
-	Today       string
-	ContentHTML template.HTML
-}
-
 func runTemplate(ta templateArgs) {
 	t, err := template.ParseFiles(*(ta.templateFile))
 	killOnError(err)

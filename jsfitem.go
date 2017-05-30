@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -39,22 +38,6 @@ func makeJSFItem() (jsfItemArgs, *flag.FlagSet) {
 	return j, f1
 }
 
-type jsfAttachment struct {
-	URL      string `json:"url"`
-	MIMEType string `json:"mime_type"`
-}
-
-type jsfItem struct {
-	ID            string          `json:"id"`
-	URL           string          `json:"url"`
-	Title         string          `json:"title"`
-	ContentHTML   string          `json:"content_html"`
-	DatePublished string          `json:"date_published"`
-	DateModified  string          `json:"date_modified"`
-	Tags          []string        `json:"tags"`
-	Attachments   []jsfAttachment `json:"attachments"`
-}
-
 func buildItem(ja jsfItemArgs) {
 	var ji jsfItem
 	ji.Title = *(ja.title)
@@ -86,22 +69,4 @@ func buildItem(ja jsfItemArgs) {
 	e.SetEscapeHTML(false)
 	err = e.Encode(ji)
 	killOnError(err)
-}
-
-func buildAttachment(filename string, baseURL string) jsfAttachment {
-	var res jsfAttachment
-
-	res.URL = path.Join(baseURL, filename)
-	f, err := os.Open(filename)
-	killOnError(err)
-
-	b1 := make([]byte, 512)
-	_, err = f.Read(b1)
-	printOnError(err)
-
-	err = f.Close()
-	killOnError(err)
-
-	res.MIMEType = http.DetectContentType(b1)
-	return res
 }

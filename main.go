@@ -12,6 +12,7 @@ func main() {
 
 	ta, fTemplate := makeTemplateArgs()
 	ji, fJSFItem := makeJSFItem()
+	aa, fArticle := makeArticleArgs()
 
 	switch os.Args[1] {
 	case templateMode:
@@ -21,6 +22,10 @@ func main() {
 	case itemMode:
 		if err := fJSFItem.Parse(os.Args[2:]); err == nil {
 			buildItem(ji)
+		}
+	case articleMode:
+		if err := fArticle.Parse(os.Args[2:]); err == nil {
+			buildArticle(aa)
 		}
 	default:
 		log.Fatal("Unsupported mode")
