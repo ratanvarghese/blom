@@ -128,6 +128,11 @@ func makeItem(args articleArgs, datePublished string, content string) jsfItem {
 		panic(err)
 	}
 	res.DateModified = info.ModTime().Format(time.RFC3339)
+	if strings.Compare(res.DateModified, res.DatePublished) < 0 {
+		res.DateModified = res.DatePublished
+		//As far as the outside world is concerned, the article does not exist
+		//before it is published.
+	}
 
 	f, err := os.Create(itemFile)
 	if err != nil {
