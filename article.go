@@ -186,7 +186,7 @@ func dualDateFormat(RFCDate string) string {
 	return fmt.Sprintf("%s [Gregorian: %s]", tqDateBetter, gDateStr)
 }
 
-func runTemplate2(ji jsfItem, args articleArgs, content string) {
+func runTemplate(ji jsfItem, args articleArgs, content string) {
 	var articleE articleExport
 	articleE.Title = ji.Title
 	if *(args.localstyle) {
@@ -230,5 +230,5 @@ func buildArticle(args articleArgs) {
 	}
 
 	ji := makeItem(args, datePublished, string(articleContent))
-	runTemplate2(ji, args, string(articleContent))
+	runTemplate(ji, args, string(articleContent))
 }
