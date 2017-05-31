@@ -17,6 +17,8 @@ func main() {
 		if err := fArticle.Parse(os.Args[2:]); err == nil {
 			buildArticle(aa)
 		}
+	case updateMode:
+		foo()
 	default:
 		log.Fatal("Unsupported mode")
 	}
