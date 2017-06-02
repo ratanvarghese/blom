@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+const blogName = "ratan.blog"
 const articleMode = "article"
 const templateFile = "template.html"
 const siteURL = "http://ratan.blog"
@@ -197,7 +198,7 @@ func dualDateFormat(RFCDate string) string {
 
 func runTemplate(ji jsfItem, args articleArgs, content string) {
 	var articleE articleExport
-	articleE.Title = ji.Title
+	articleE.Title = fmt.Sprintf("%v - %v", ji.Title, blogName)
 	articleE.Stylesheet = *(args.style)
 	articleE.Date = dualDateFormat(ji.DatePublished)
 	articleE.Today = fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339)))
