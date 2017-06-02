@@ -18,7 +18,7 @@ func main() {
 			buildArticle(aa)
 		}
 	case updateMode:
-		foo()
+		doUpdate()
 	default:
 		log.Fatal("Unsupported mode")
 	}
