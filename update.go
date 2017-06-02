@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -12,14 +13,15 @@ import (
 const updateMode = "update"
 const defaultVersion = "https://jsonfeed.org/version/1"
 const defaultHomePage = "ratan.blog"
-const defaultFeedUrl = "ratan.blog/feeds/json"
+const feedPath = "feeds/json"
+const pageLen = 15
 
 type jsfMain struct {
 	Version     string    `json:"version"`
 	Title       string    `json:"title"`
 	HomePageUrl string    `json:"home_page_url"`
 	FeedUrl     string    `json:"feed_url"`
-	NextUrl     string    `json:"next_url"`
+	NextUrl     string    `json:"next_url,omitempty"`
 	Items       []jsfItem `json:"items"`
 }
 
@@ -85,16 +87,44 @@ func makeItemList() []jsfItem {
 	return jiList
 }
 
-func doUpdate() {
+func defaultJsfMain() jsfMain {
 	var jf jsfMain
 	jf.Version = defaultVersion
 	jf.HomePageUrl = defaultHomePage
 	jf.Title = defaultHomePage
-	jf.FeedUrl = defaultFeedUrl
-	jf.Items = makeItemList()
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "\t")
-	sort.Sort(byDatePublished(jf.Items))
-	enc.Encode(jf)
+	jf.FeedUrl = path.Join(defaultHomePage, feedPath)
+	return jf
+}
+
+func paginatedPrint(itemList []jsfItem) {
+	jf := defaultJsfMain()
+	listLen := len(itemList)
+	for i := 0; i < listLen; i += pageLen {
+		pageNum := i / pageLen
+		pageEnd := i + pageLen
+		if listLen >= pageEnd {
+			jf.NextUrl = fmt.Sprintf("%v%v", jf.FeedUrl, pageNum+1)
+		} else {
+			pageEnd = listLen
+		}
+		jf.Items = itemList[i:pageEnd]
+		curPath := feedPath
+		if pageNum > 0 {
+			curPath = fmt.Sprintf("%v%v", curPath, pageNum)
+		}
+		f, err := os.Create(curPath)
+		if err != nil {
+			panic(err)
+		}
+		enc := json.NewEncoder(f)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "\t")
+		enc.Encode(jf)
+	}
+}
+
+func doUpdate() {
+	jfItems := makeItemList()
+	sort.Sort(byDatePublished(jfItems))
+	paginatedPrint(jfItems)
 }
