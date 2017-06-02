@@ -41,7 +41,7 @@ func (b byDatePublished) Less(i, j int) bool {
 	return ti.After(tj)
 }
 
-func noFrillsBuildArticle() {
+func noFrillsArticle() articleArgs {
 	var args articleArgs
 	stylesheet := defaultStylesheet
 	template := defaultTemplate
@@ -51,7 +51,7 @@ func noFrillsBuildArticle() {
 	args.tags = &blank
 	args.style = &stylesheet
 	args.template = &template
-	buildArticle(args)
+	return args
 }
 
 func makeItemList() []jsfItem {
@@ -68,7 +68,8 @@ func makeItemList() []jsfItem {
 		if err := os.Chdir(folder.Name()); err != nil {
 			continue
 		}
-		noFrillsBuildArticle()
+		args := noFrillsArticle()
+		buildArticle(args)
 		if err := os.Chdir(".."); err != nil {
 			panic(err)
 		}
@@ -123,8 +124,21 @@ func paginatedPrint(itemList []jsfItem) {
 	}
 }
 
+func makeHomepage(latestItem jsfItem) {
+	args := noFrillsArticle()
+	style := "style.css"
+	template := "../template.html"
+	args.style = &style
+	args.template = &template
+	runTemplate(latestItem, args, latestItem.ContentHTML)
+}
+
 func doUpdate() {
 	jfItems := makeItemList()
 	sort.Sort(byDatePublished(jfItems))
+
+	if len(jfItems) > 0 {
+		makeHomepage(jfItems[0])
+	}
 	paginatedPrint(jfItems)
 }
