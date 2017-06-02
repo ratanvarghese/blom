@@ -139,7 +139,6 @@ func makeItem(args articleArgs, datePublished string, content string) jsfItem {
 	}
 	if tMod.Before(tPub) {
 		res.DateModified = res.DatePublished
-		fmt.Println("Hey!")
 	} else {
 		res.DateModified = info.ModTime().Format(time.RFC3339)
 	}
