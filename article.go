@@ -24,6 +24,9 @@ const itemFile = "item.json"
 const listSeperator = ","
 const outputWebpage = "index.html"
 
+const defaultStylesheet = "../style.css"
+const defaultTemplate = "../../template.html"
+
 type articleArgs struct {
 	attach   *string
 	title    *string
@@ -64,8 +67,8 @@ func makeArticleArgs() (articleArgs, *flag.FlagSet) {
 	args.attach = fset.String("attach", "", "Comma-seperated files to attach")
 	args.title = fset.String("title", "", "Title of the article")
 	args.tags = fset.String("tags", "", "Comma-seperated tags")
-	args.style = fset.String("style", "../style.css", "Filename of stylesheet")
-	args.template = fset.String("template", "../../template.html", "Filename of template file")
+	args.style = fset.String("style", defaultStylesheet, "Filename of stylesheet")
+	args.template = fset.String("template", defaultTemplate, "Filename of template file")
 
 	return args, fset
 }
