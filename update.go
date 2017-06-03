@@ -225,7 +225,7 @@ func tagsPageLines(itemList []jsfItem) []string {
 	outputLines := make([]string, 0)
 	tagMap, tagList := tagSort(itemList)
 	for _, tag := range tagList {
-		outputLines = append(outputLines, fmt.Sprintf("<h3>%v<h3>", strings.Title(tag)))
+		outputLines = append(outputLines, fmt.Sprintf("<h3>%v</h3>", strings.Title(tag)))
 		outputLines = append(outputLines, "<ul>")
 		for _, ji := range tagMap[tag] {
 			outputLines = append(outputLines, fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", ji.URL, ji.Title))
