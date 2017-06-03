@@ -187,8 +187,8 @@ func printArchive(itemList []jsfItem) {
 	var articleE articleExport
 	articleE.Title = "Archive"
 	articleE.Stylesheet = "../style.css"
-	articleE.Date = ""
-	articleE.Today = fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339)))
+	articleE.Date = template.HTML("")
+	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
 	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
 
 	tmpl, err := template.ParseFiles("../../template.html")
@@ -247,8 +247,8 @@ func printTagsPage(itemList []jsfItem) {
 	var articleE articleExport
 	articleE.Title = "Tags"
 	articleE.Stylesheet = "../style.css"
-	articleE.Date = ""
-	articleE.Today = fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339)))
+	articleE.Date = template.HTML("")
+	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
 	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
 
 	tmpl, err := template.ParseFiles("../../template.html")

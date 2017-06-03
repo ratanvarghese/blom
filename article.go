@@ -55,8 +55,8 @@ type jsfItem struct {
 type articleExport struct {
 	Title       string
 	Stylesheet  string
-	Date        string
-	Today       string
+	Date        template.HTML
+	Today       template.HTML
 	ContentHTML template.HTML
 }
 
@@ -215,15 +215,15 @@ func dualDateFormat(RFCDate string) string {
 	tqDate := tqtime.LongDate(gDate.Year(), gDate.YearDay())
 	tqDateBetter := strings.Replace(tqDate, "After Tranquility", "AT", 1)
 	gDateStr := gDate.Format(outputGDateFormat)
-	return fmt.Sprintf("%s [Gregorian: %s]", tqDateBetter, gDateStr)
+	return fmt.Sprintf("%s<br />[Gregorian: %s]", tqDateBetter, gDateStr)
 }
 
 func runTemplate(ji jsfItem, args articleArgs, content string) {
 	var articleE articleExport
 	articleE.Title = ji.Title
 	articleE.Stylesheet = *(args.style)
-	articleE.Date = dualDateFormat(ji.DatePublished)
-	articleE.Today = fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339)))
+	articleE.Date = template.HTML(dualDateFormat(ji.DatePublished))
+	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
 	articleE.ContentHTML = template.HTML(content)
 
 	tmpl, err := template.ParseFiles(*(args.template))
