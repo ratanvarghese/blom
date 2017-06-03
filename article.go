@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
+	"github.com/russross/blackfriday"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -20,6 +21,7 @@ const articleMode = "article"
 const templateFile = "template.html"
 const siteURL = "http://ratan.blog"
 const contentFile = "content.html"
+const contentMarkdown = "content.md"
 const itemFile = "item.json"
 const listSeperator = ","
 const outputWebpage = "index.html"
@@ -241,11 +243,28 @@ func runTemplate(ji jsfItem, args articleArgs, content string) {
 }
 
 func buildArticle(args articleArgs) {
-	articleContent, err := ioutil.ReadFile(contentFile)
-	if err != nil {
-		panic(err)
-	}
+	/*if _, err := os.Stat(contentFile); os.IsNotExist(err) {
+	  articleMd, err := ioutil.ReadFile(
+	  }
 
+	  	articleContent, err := ioutil.ReadFile(contentFile)
+	  	if err != nil {
+	  		panic(err)
+	  	}*/
+	var articleContent []byte
+	if _, err := os.Stat(contentMarkdown); err == nil {
+		mdContent, err := ioutil.ReadFile(contentMarkdown)
+		if err != nil {
+			panic(err)
+		}
+		articleContent = blackfriday.MarkdownCommon(mdContent)
+		ioutil.WriteFile(contentFile, articleContent, 0664)
+	} else if _, err := os.Stat(contentFile); err == nil {
+		articleContent, err = ioutil.ReadFile(contentFile)
+		if err != nil {
+			panic(err)
+		}
+	}
 	oldAttach, oldTitle, oldTags, datePublished := argsFromItemFile()
 	if len(*args.attach) < 1 {
 		args.attach = &oldAttach
