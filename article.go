@@ -9,8 +9,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -113,7 +113,18 @@ func makeItem(args articleArgs, datePublished string, content string) jsfItem {
 	var res jsfItem
 	res.Title = *(args.title)
 	res.Tags = strings.Split(*(args.tags), listSeperator)
-	res.URL = path.Join(siteURL, curDir())
+
+	base, err := url.Parse(siteURL)
+	if err != nil {
+		panic(err)
+	}
+
+	u, err := url.Parse(curDir())
+	if err != nil {
+		panic(err)
+	}
+
+	res.URL = base.ResolveReference(u).String()
 	res.ID = res.URL
 	res.DatePublished = datePublished
 	res.ContentHTML = content
@@ -176,7 +187,19 @@ func buildAttachment(filename string, baseURL string) jsfAttachment {
 		log.Print(err)
 	}
 
-	res.URL = path.Join(baseURL, filename)
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		log.Print(err)
+		return res
+	}
+
+	u, err := url.Parse(filename)
+	if err != nil {
+		log.Print(err)
+		return res
+	}
+
+	res.URL = base.ResolveReference(u).String()
 	res.MIMEType = http.DetectContentType(b1)
 	res.valid = true
 	return res
