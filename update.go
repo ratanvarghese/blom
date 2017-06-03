@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/feeds"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
@@ -17,6 +18,8 @@ const updateMode = "update"
 const defaultVersion = "https://jsonfeed.org/version/1"
 const defaultHomePage = "ratan.blog"
 const jfPath = "feeds/json"
+const atomPath = "feeds/atom"
+const rssPath = "feeds/rss"
 const pageLen = 15
 
 type jsfMain struct {
@@ -266,6 +269,43 @@ func printTagsPage(itemList []jsfItem) {
 	}
 }
 
+func jfItemToGorilla(ji jsfItem) feeds.Item {
+	var gi feeds.Item
+	gi.Title = ji.Title
+	gi.Link = &feeds.Link{Href: ji.URL}
+	gi.Created, _ = time.Parse(time.RFC3339, ji.DatePublished)
+	gi.Updated, _ = time.Parse(time.RFC3339, ji.DateModified)
+	gi.Id = ji.URL
+	return gi
+}
+
+func legacyFeeds(itemList []jsfItem) {
+	var gf feeds.Feed
+	gf.Title = defaultHomePage
+	gf.Link = &feeds.Link{Href: siteURL}
+	gf.Created = time.Now()
+
+	gfItemList := make([]feeds.Item, len(itemList))
+	gfItemPtrList := make([]*feeds.Item, len(itemList))
+	for i, ji := range itemList {
+		gfItemList[i] = jfItemToGorilla(ji)
+		gfItemPtrList[i] = &(gfItemList[i])
+	}
+	gf.Items = gfItemPtrList
+	atom, err := gf.ToAtom()
+	if err != nil {
+		panic(err)
+	}
+
+	rss, err := gf.ToRss()
+	if err != nil {
+		panic(err)
+	}
+
+	ioutil.WriteFile(atomPath, []byte(atom), 0664)
+	ioutil.WriteFile(rssPath, []byte(rss), 0664)
+}
+
 func doUpdate() {
 	jfItems := makeItemList()
 	sort.Sort(byDatePublished(jfItems))
@@ -276,4 +316,5 @@ func doUpdate() {
 	paginatedPrint(jfItems)
 	printArchive(jfItems)
 	printTagsPage(jfItems)
+	legacyFeeds(jfItems)
 }
