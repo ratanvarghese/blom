@@ -206,6 +206,66 @@ func printArchive(itemList []jsfItem) {
 	}
 }
 
+func tagSort(itemList []jsfItem) (map[string][]jsfItem, []string) {
+	res := make(map[string][]jsfItem)
+	tagList := make([]string, 0)
+	for _, ji := range itemList {
+		for _, tag := range ji.Tags {
+			if len(res[tag]) == 0 && len(tag) > 0 {
+				tagList = append(tagList, tag)
+			}
+			res[tag] = append(res[tag], ji)
+		}
+	}
+	sort.Strings(tagList)
+	return res, tagList
+}
+
+func tagsPageLines(itemList []jsfItem) []string {
+	outputLines := make([]string, 0)
+	tagMap, tagList := tagSort(itemList)
+	for _, tag := range tagList {
+		outputLines = append(outputLines, fmt.Sprintf("<h3>%v<h3>", strings.Title(tag)))
+		outputLines = append(outputLines, "<ul>")
+		for _, ji := range tagMap[tag] {
+			outputLines = append(outputLines, fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", ji.URL, ji.Title))
+		}
+		outputLines = append(outputLines, "</ul>")
+	}
+	return outputLines
+}
+
+func printTagsPage(itemList []jsfItem) {
+	lineList := tagsPageLines(itemList)
+	if err := os.Chdir("tags"); err != nil {
+		panic(err)
+	}
+
+	var articleE articleExport
+	articleE.Title = "Tags"
+	articleE.Stylesheet = "../style.css"
+	articleE.Date = ""
+	articleE.Today = fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339)))
+	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
+
+	tmpl, err := template.ParseFiles("../../template.html")
+	if err != nil {
+		panic(err)
+	}
+	f, err := os.Create(outputWebpage)
+	if err != nil {
+		panic(err)
+	}
+	err = tmpl.Execute(f, articleE)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := os.Chdir(".."); err != nil {
+		panic(err)
+	}
+}
+
 func doUpdate() {
 	jfItems := makeItemList()
 	sort.Sort(byDatePublished(jfItems))
@@ -215,4 +275,5 @@ func doUpdate() {
 	}
 	paginatedPrint(jfItems)
 	printArchive(jfItems)
+	printTagsPage(jfItems)
 }
