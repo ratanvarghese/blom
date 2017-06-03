@@ -16,7 +16,7 @@ import (
 const updateMode = "update"
 const defaultVersion = "https://jsonfeed.org/version/1"
 const defaultHomePage = "ratan.blog"
-const feedPath = "feeds/json"
+const jfPath = "feeds/json"
 const pageLen = 15
 
 type jsfMain struct {
@@ -96,7 +96,7 @@ func defaultJsfMain() jsfMain {
 	jf.Version = defaultVersion
 	jf.HomePageUrl = defaultHomePage
 	jf.Title = defaultHomePage
-	jf.FeedUrl = path.Join(defaultHomePage, feedPath)
+	jf.FeedUrl = path.Join(defaultHomePage, jfPath)
 	return jf
 }
 
@@ -112,7 +112,7 @@ func paginatedPrint(itemList []jsfItem) {
 			pageEnd = listLen
 		}
 		jf.Items = itemList[i:pageEnd]
-		curPath := feedPath
+		curPath := jfPath
 		if pageNum > 0 {
 			curPath = fmt.Sprintf("%v%v", curPath, pageNum)
 		}
