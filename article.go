@@ -26,14 +26,12 @@ const itemFile = "item.json"
 const listSeperator = ","
 const outputWebpage = "index.html"
 
-const defaultStylesheet = "../style.css"
 const defaultTemplate = "../../template.html"
 
 type articleArgs struct {
 	attach   *string
 	title    *string
 	tags     *string
-	style    *string
 	template *string
 }
 
@@ -56,7 +54,6 @@ type jsfItem struct {
 
 type articleExport struct {
 	Title       string
-	Stylesheet  string
 	Date        template.HTML
 	Today       template.HTML
 	ContentHTML template.HTML
@@ -69,7 +66,6 @@ func makeArticleArgs() (articleArgs, *flag.FlagSet) {
 	args.attach = fset.String("attach", "", "Comma-seperated files to attach")
 	args.title = fset.String("title", "", "Title of the article")
 	args.tags = fset.String("tags", "", "Comma-seperated tags")
-	args.style = fset.String("style", defaultStylesheet, "Filename of stylesheet")
 	args.template = fset.String("template", defaultTemplate, "Filename of template file")
 
 	return args, fset
@@ -134,7 +130,8 @@ func makeItem(args articleArgs, datePublished string, content string) jsfItem {
 	attachList := strings.Split(*(args.attach), listSeperator)
 	for _, attachName := range attachList {
 		if len(attachName) > 0 {
-			a := buildAttachment(attachName, siteURL)
+			trimAttachName := strings.Trim(attachName, " \n\t")
+			a := buildAttachment(trimAttachName, siteURL)
 			if a.valid {
 				res.Attachments = append(res.Attachments, a)
 			}
@@ -223,7 +220,6 @@ func dualDateFormat(RFCDate string) string {
 func runTemplate(ji jsfItem, args articleArgs, content string) {
 	var articleE articleExport
 	articleE.Title = ji.Title
-	articleE.Stylesheet = *(args.style)
 	articleE.Date = template.HTML(dualDateFormat(ji.DatePublished))
 	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
 	articleE.ContentHTML = template.HTML(content)

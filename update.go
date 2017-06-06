@@ -49,13 +49,11 @@ func (b byDatePublished) Less(i, j int) bool {
 
 func noFrillsArticle() articleArgs {
 	var args articleArgs
-	stylesheet := defaultStylesheet
 	template := defaultTemplate
 	blank := ""
 	args.attach = &blank
 	args.title = &blank
 	args.tags = &blank
-	args.style = &stylesheet
 	args.template = &template
 	return args
 }
@@ -132,9 +130,7 @@ func paginatedPrint(itemList []jsfItem) {
 
 func makeHomepage(latestItem jsfItem) {
 	args := noFrillsArticle()
-	style := "style.css"
 	template := "../template.html"
-	args.style = &style
 	args.template = &template
 	runTemplate(latestItem, args, latestItem.ContentHTML)
 }
@@ -186,7 +182,6 @@ func printArchive(itemList []jsfItem) {
 
 	var articleE articleExport
 	articleE.Title = "Archive"
-	articleE.Stylesheet = "../style.css"
 	articleE.Date = template.HTML("")
 	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
 	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
@@ -246,7 +241,6 @@ func printTagsPage(itemList []jsfItem) {
 
 	var articleE articleExport
 	articleE.Title = "Tags"
-	articleE.Stylesheet = "../style.css"
 	articleE.Date = template.HTML("")
 	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
 	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
