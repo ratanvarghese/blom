@@ -130,9 +130,11 @@ func paginatedPrint(itemList []jsfItem) {
 
 func makeHomepage(latestItem jsfItem) {
 	args := noFrillsArticle()
-	template := "../template.html"
-	args.template = &template
-	runTemplate(latestItem, args, latestItem.ContentHTML)
+	templateFile := "../template.html"
+	args.template = &templateFile
+
+	newContent := fmt.Sprintf("%s<br /><a href=\"%s\">[Permalink]</a>", string(latestItem.ContentHTML), latestItem.URL)
+	runTemplate(latestItem, args, newContent)
 }
 
 func archiveLines(itemList []jsfItem) []string {
