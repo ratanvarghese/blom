@@ -25,9 +25,9 @@ const pageLen = 15
 type jsfMain struct {
 	Version     string    `json:"version"`
 	Title       string    `json:"title"`
-	HomePageUrl string    `json:"home_page_url"`
-	FeedUrl     string    `json:"feed_url"`
-	NextUrl     string    `json:"next_url,omitempty"`
+	HomePageURL string    `json:"home_page_url"`
+	FeedURL     string    `json:"feed_url"`
+	NextURL     string    `json:"next_url,omitempty"`
 	Items       []jsfItem `json:"items"`
 }
 
@@ -95,9 +95,9 @@ func makeItemList() []jsfItem {
 func defaultJsfMain() jsfMain {
 	var jf jsfMain
 	jf.Version = defaultVersion
-	jf.HomePageUrl = defaultHomePage
+	jf.HomePageURL = defaultHomePage
 	jf.Title = defaultHomePage
-	jf.FeedUrl = path.Join(defaultHomePage, jfPath)
+	jf.FeedURL = path.Join(defaultHomePage, jfPath)
 	return jf
 }
 
@@ -108,7 +108,7 @@ func paginatedPrint(itemList []jsfItem) {
 		pageNum := i / pageLen
 		pageEnd := i + pageLen
 		if listLen >= pageEnd {
-			jf.NextUrl = fmt.Sprintf("%v%v", jf.FeedUrl, pageNum+1)
+			jf.NextURL = fmt.Sprintf("%v%v", jf.FeedURL, pageNum+1)
 		} else {
 			pageEnd = listLen
 		}
@@ -124,7 +124,10 @@ func paginatedPrint(itemList []jsfItem) {
 		enc := json.NewEncoder(f)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", "\t")
-		enc.Encode(jf)
+		err = enc.Encode(jf)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -133,7 +136,7 @@ func makeHomepage(latestItem jsfItem) {
 	templateFile := "../template.html"
 	args.template = &templateFile
 
-	newContent := fmt.Sprintf("%s<br /><a href=\"%s\">[Permalink]</a>", string(latestItem.ContentHTML), latestItem.URL)
+	newContent := fmt.Sprintf("%s<br /><a href=\"%s\">[Permalink]</a>", latestItem.ContentHTML, latestItem.URL)
 	runTemplate(latestItem, args, newContent)
 }
 
@@ -299,8 +302,14 @@ func legacyFeeds(itemList []jsfItem) {
 		panic(err)
 	}
 
-	ioutil.WriteFile(atomPath, []byte(atom), 0664)
-	ioutil.WriteFile(rssPath, []byte(rss), 0664)
+	err = ioutil.WriteFile(atomPath, []byte(atom), 0664)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile(rssPath, []byte(rss), 0664)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func doUpdate() {

@@ -159,7 +159,7 @@ func makeItem(args articleArgs, datePublished string, content string) jsfItem {
 	}
 	enc := json.NewEncoder(f)
 	enc.SetEscapeHTML(false)
-	enc.Encode(res)
+	err = enc.Encode(res)
 	if err != nil {
 		panic(err)
 	}
@@ -239,14 +239,6 @@ func runTemplate(ji jsfItem, args articleArgs, content string) {
 }
 
 func buildArticle(args articleArgs) {
-	/*if _, err := os.Stat(contentFile); os.IsNotExist(err) {
-	  articleMd, err := ioutil.ReadFile(
-	  }
-
-	  	articleContent, err := ioutil.ReadFile(contentFile)
-	  	if err != nil {
-	  		panic(err)
-	  	}*/
 	var articleContent []byte
 	if _, err := os.Stat(contentMarkdown); err == nil {
 		mdContent, err := ioutil.ReadFile(contentMarkdown)
@@ -254,7 +246,10 @@ func buildArticle(args articleArgs) {
 			panic(err)
 		}
 		articleContent = blackfriday.MarkdownCommon(mdContent)
-		ioutil.WriteFile(contentFile, articleContent, 0664)
+		err = ioutil.WriteFile(contentFile, articleContent, 0664)
+		if err != nil {
+			panic(err)
+		}
 	} else if _, err := os.Stat(contentFile); err == nil {
 		articleContent, err = ioutil.ReadFile(contentFile)
 		if err != nil {
