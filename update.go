@@ -272,6 +272,7 @@ func jfItemToGorilla(ji jsfItem) feeds.Item {
 	gi.Created, _ = time.Parse(time.RFC3339, ji.DatePublished)
 	gi.Updated, _ = time.Parse(time.RFC3339, ji.DateModified)
 	gi.Id = ji.URL
+	gi.Description = ji.ContentHTML
 	return gi
 }
 
