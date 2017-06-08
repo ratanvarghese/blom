@@ -35,23 +35,6 @@ type articleArgs struct {
 	template *string
 }
 
-type jsfAttachment struct {
-	URL      string `json:"url"`
-	MIMEType string `json:"mime_type"`
-	valid    bool
-}
-
-type jsfItem struct {
-	ID            string          `json:"id"`
-	URL           string          `json:"url"`
-	Title         string          `json:"title"`
-	ContentHTML   string          `json:"content_html"`
-	DatePublished string          `json:"date_published"`
-	DateModified  string          `json:"date_modified"`
-	Tags          []string        `json:"tags"`
-	Attachments   []jsfAttachment `json:"attachments"`
-}
-
 type articleExport struct {
 	Title       string
 	Date        template.HTML
