@@ -21,7 +21,7 @@ func TestAttachInitJPEG(t *testing.T) {
 		t.Errorf("Wrong MIME Type, expected:%s, actual:%s", expectedMIME, ja.MIMEType)
 	}
 
-	expectedURL := fmt.Sprintf("%s/%s/attachments/%s", hostURL, articleName, baseName)
+	expectedURL := fmt.Sprintf("%s/%s/attachments/%s", hostRawURL, articleName, baseName)
 	if ja.URL != expectedURL {
 		t.Errorf("Wrong URL, expected:%s, actual:%s", expectedURL, ja.URL)
 	}

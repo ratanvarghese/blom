@@ -1,8 +1,8 @@
 package main
 
 import (
-	"errors"
 	"net/http"
+	"net/url"
 )
 
 type jsfAttachment struct {
@@ -22,10 +22,23 @@ type jsfItem struct {
 	Attachments   []jsfAttachment `json:"attachments"`
 }
 
-const hostURL = "http://ratan.blog"
+const hostRawURL = "http://ratan.blog"
+const attachmentDir = "attachments"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
-	ja.valid = false
-	return errors.New("Not implemented fully")
+	URLRelativeToHost, err := url.Parse(article + "/" + attachmentDir + "/" + basename)
+	if err != nil {
+		return err
+	}
+
+	hostURL, err := url.Parse(hostRawURL)
+	if err != nil {
+		return err
+	}
+
+	ja.URL = hostURL.ResolveReference(URLRelativeToHost).String()
+
+	ja.valid = true
+	return nil
 }
