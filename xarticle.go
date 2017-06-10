@@ -2,10 +2,13 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -56,4 +59,12 @@ func (ja *jsfAttachment) init(basename string, article string, fileStart []byte)
 
 func templateToWriter(wr io.Writer, published time.Time, title, templateText, content string) error {
 	return errors.New("Not yet implemented")
+}
+
+func dualDateStr(gDate time.Time) string {
+	const outputGDateFormat = "Monday, 2 January, 2006 CE"
+	tqDate := tqtime.LongDate(gDate.Year(), gDate.YearDay())
+	tqDateBetter := strings.Replace(tqDate, "After Tranquility", "AT", 1)
+	gDateStr := gDate.Format(outputGDateFormat)
+	return fmt.Sprintf("%s<br />[Gregorian: %s]", tqDateBetter, gDateStr)
 }

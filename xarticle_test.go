@@ -38,7 +38,7 @@ func TestAttachInitJPEG(t *testing.T) {
 func TestTemplateToWriter(t *testing.T) {
 	miniTemplate := "{{.Title}}\n{{.Today}}\n{{.Date}}\n{{.ContentHTML}}"
 	title := "Demo Title"
-	published, err := time.Parse("2006-01-02", "2017-10-17")
+	published, err := time.Parse("2006-01-02", "2017-07-10")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
@@ -81,4 +81,16 @@ func TestTemplateToWriter(t *testing.T) {
 		t.Errorf("Wrong content, expected '%s', actual '%s'.", miniContent, resultLines[3])
 	}
 
+}
+
+func TestDualDateStr(t *testing.T) {
+	input, err := time.Parse("2006-01-02", "2017-06-10")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	result := dualDateStr(input)
+	expected := "Sunday, 17 Lavoisier, 48 AT<br />[Gregorian: Saturday, 10 June, 2017 CE]"
+	if result != expected {
+		t.Errorf("Wrong date, expected '%s', actual '%s'.", expected, result)
+	}
 }
