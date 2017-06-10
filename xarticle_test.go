@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -47,4 +48,26 @@ func TestTemplateToWriter(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error (%s) when given valid inputs.", err.Error())
 	}
+
+	resultLines := strings.Split(outputBuf.String(), "\n")
+	if len(resultLines) < 1 {
+		t.Errorf("No title")
+	} else if resultLines[0] != title {
+		t.Errorf("Wrong title, expected '%s', actual '%s'.", title, resultLines[0])
+	}
+
+	if len(resultLines) < 2 {
+		t.Errorf("No 'today' string")
+	}
+
+	if len(resultLines) < 3 {
+		t.Errorf("No 'date' string")
+	}
+
+	if len(resultLines) < 4 {
+		t.Errorf("No content")
+	} else if resultLines[3] != miniContent {
+		t.Errorf("Wrong content, expected '%s', actual '%s'.", miniContent, resultLines[3])
+	}
+
 }
