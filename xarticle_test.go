@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestAttachInitJPEG(t *testing.T) {
@@ -28,5 +30,21 @@ func TestAttachInitJPEG(t *testing.T) {
 
 	if !ja.valid {
 		t.Errorf("jsfAttachment is invalid after given valid arguments")
+	}
+}
+
+func TestTemplateToWriter(t *testing.T) {
+	miniTemplate := "{{.Title}}\n{{.Today}}\n{{.Date}}\n{{.ContentHTML}}"
+	title := "Demo Title"
+	published, err := time.Parse("2006-01-02", "2017-07-07")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	outputBuf := new(bytes.Buffer)
+	miniContent := "Demo Content"
+
+	err = templateToWriter(outputBuf, published, title, miniTemplate, miniContent)
+	if err != nil {
+		t.Errorf("Error (%s) when given valid inputs.", err.Error())
 	}
 }

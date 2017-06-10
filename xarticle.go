@@ -1,8 +1,12 @@
 package main
 
 import (
+	"errors"
+	"html/template"
+	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 type jsfAttachment struct {
@@ -20,6 +24,13 @@ type jsfItem struct {
 	DateModified  string          `json:"date_modified"`
 	Tags          []string        `json:"tags"`
 	Attachments   []jsfAttachment `json:"attachments"`
+}
+
+type articleExport struct {
+	Title       string
+	Date        template.HTML
+	Today       template.HTML
+	ContentHTML template.HTML
 }
 
 const hostRawURL = "http://ratan.blog"
@@ -41,4 +52,8 @@ func (ja *jsfAttachment) init(basename string, article string, fileStart []byte)
 
 	ja.valid = true
 	return nil
+}
+
+func templateToWriter(wr io.Writer, published time.Time, title, templateText, content string) error {
+	return errors.New("Not yet implemented")
 }

@@ -35,13 +35,6 @@ type articleArgs struct {
 	template *string
 }
 
-type articleExport struct {
-	Title       string
-	Date        template.HTML
-	Today       template.HTML
-	ContentHTML template.HTML
-}
-
 func makeArticleArgs() (articleArgs, *flag.FlagSet) {
 	var args articleArgs
 	fset := flag.NewFlagSet(articleMode, flag.ContinueOnError)
