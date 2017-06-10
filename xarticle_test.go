@@ -38,7 +38,7 @@ func TestAttachInitJPEG(t *testing.T) {
 func TestTemplateToWriter(t *testing.T) {
 	miniTemplate := "{{.Title}}\n{{.Today}}\n{{.Date}}\n{{.ContentHTML}}"
 	title := "Demo Title"
-	published, err := time.Parse("2006-01-02", "2017-07-10")
+	published, err := time.Parse("2006-01-02", "2017-06-10")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
@@ -61,14 +61,14 @@ func TestTemplateToWriter(t *testing.T) {
 	gregString := today.Format("Monday, 2 January, 2006 CE")
 	tqString := tqtime.LongDate(today.Year(), today.YearDay())
 	tqStringBetter := strings.Replace(tqString, "After Tranquility", "AT", 1)
-	expectedTodayString := fmt.Sprintf("%s<br />[Gregorian: %s]", tqStringBetter, gregString)
+	expectedTodayString := fmt.Sprintf("Today is %s<br />[Gregorian: %s]", tqStringBetter, gregString)
 	if len(resultLines) < 2 {
 		t.Errorf("No 'today' string")
 	} else if resultLines[1] != expectedTodayString {
 		t.Errorf("Wrong 'today' string, expected '%s', actual '%s'.", expectedTodayString, resultLines[1])
 	}
 
-	expectedDate := "Today is Sunday, 17 Lavoisier, 48 AT<br />[Gregorian: Saturday, 10 June, 2017 CE]"
+	expectedDate := "Sunday, 17 Lavoisier, 48 AT<br />[Gregorian: Saturday, 10 June, 2017 CE]"
 	if len(resultLines) < 3 {
 		t.Errorf("No 'date' string")
 	} else if resultLines[2] != expectedDate {
