@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
@@ -57,6 +58,14 @@ func (ja *jsfAttachment) init(basename string, article string, fileStart []byte)
 }
 
 func (ji *jsfItem) init(published, modified time.Time, title, directory, tagList string) error {
+	if len(title) < 1 {
+		return errors.New("Blank title")
+	}
+
+	if len(directory) < 1 {
+		return errors.New("Blank directory")
+	}
+
 	base, err := url.Parse(hostRawURL)
 	if err != nil {
 		return err
@@ -71,8 +80,14 @@ func (ji *jsfItem) init(published, modified time.Time, title, directory, tagList
 	ji.ID = ji.URL
 	ji.Title = title
 	ji.DatePublished = published.Format(time.RFC3339)
-	ji.DateModified = modified.Format(time.RFC3339)
-	ji.Tags = strings.Split(tagList, listSeperator)
+	if published.After(modified) {
+		ji.DateModified = ji.DatePublished
+	} else {
+		ji.DateModified = modified.Format(time.RFC3339)
+	}
+	if len(tagList) > 0 {
+		ji.Tags = strings.Split(tagList, listSeperator)
+	}
 	return nil
 }
 
