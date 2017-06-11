@@ -126,16 +126,16 @@ func getAttachPaths(articlePath string) (map[string]bool, error) {
 	return res, nil
 }
 
-func attachmentsFromReaders(article string, filepaths []string, buffers []io.Reader) ([]jsfAttachment, error) {
-	if len(filepaths) != len(buffers) {
-		return nil, errors.New("Mismatch between filepath count and buffer count.")
+func attachmentsFromReaders(article string, filepaths []string, readers []io.Reader) ([]jsfAttachment, error) {
+	if len(filepaths) != len(readers) {
+		return nil, errors.New("Mismatch between filepath count and reader count.")
 	}
 
 	const bytesNeededToFindMIMEType = 512
 	attachList := make([]jsfAttachment, len(filepaths))
 	for i, curpath := range filepaths {
 		b := make([]byte, bytesNeededToFindMIMEType)
-		_, err := buffers[i].Read(b)
+		_, err := readers[i].Read(b)
 		if err != nil {
 			return attachList, err
 		}
