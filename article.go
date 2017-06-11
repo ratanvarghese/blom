@@ -23,7 +23,6 @@ const siteURL = "http://ratan.blog"
 const contentFile = "content.html"
 const contentMarkdown = "content.md"
 const itemFile = "item.json"
-const listSeperator = ","
 const outputWebpage = "index.html"
 
 const defaultTemplate = "../../template.html"

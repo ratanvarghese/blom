@@ -36,6 +36,7 @@ type articleExport struct {
 
 const hostRawURL = "http://ratan.blog"
 const attachmentDir = "attachments"
+const listSeperator = ","
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
@@ -52,6 +53,26 @@ func (ja *jsfAttachment) init(basename string, article string, fileStart []byte)
 	ja.URL = hostURL.ResolveReference(URLRelativeToHost).String()
 
 	ja.valid = true
+	return nil
+}
+
+func (ji *jsfItem) init(published, modified time.Time, title, directory, tagList string) error {
+	base, err := url.Parse(hostRawURL)
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(directory)
+	if err != nil {
+		return err
+	}
+
+	ji.URL = base.ResolveReference(u).String()
+	ji.ID = ji.URL
+	ji.Title = title
+	ji.DatePublished = published.Format(time.RFC3339)
+	ji.DateModified = modified.Format(time.RFC3339)
+	ji.Tags = strings.Split(tagList, listSeperator)
 	return nil
 }
 

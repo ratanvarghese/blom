@@ -34,6 +34,58 @@ func TestAttachInitJPEG(t *testing.T) {
 	}
 }
 
+func TestItemInit(t *testing.T) {
+	published, err := time.Parse("2006-01-02", "2017-06-09")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	modified, err := time.Parse("2006-01-02", "2017-06-08")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	title := "demo title"
+	directory := "demo"
+	tagList := "demo,test,xxx"
+
+	var ji jsfItem
+	err = ji.init(published, modified, title, directory, tagList)
+	if err != nil {
+		t.Errorf("Error (%s) for valid input.", err.Error())
+	}
+
+	expectedPub := published.Format(time.RFC3339)
+	if ji.DatePublished != expectedPub {
+		t.Errorf("Wrong publish date, expected '%s', actual '%s'.", expectedPub, ji.DatePublished)
+	}
+
+	expectedMod := modified.Format(time.RFC3339)
+	if ji.DateModified != expectedMod {
+		t.Errorf("Wrong modification date, expected '%s', actual '%s'.", expectedMod, ji.DateModified)
+	}
+
+	if ji.Title != title {
+		t.Errorf("Wrong title, expected '%s', actual '%s'.", title, ji.Title)
+	}
+
+	expectedURL := fmt.Sprintf("%s/%s", hostRawURL, directory)
+	if ji.URL != expectedURL {
+		t.Errorf("Wrong URL, expected '%s', actual '%s'.", expectedURL, ji.URL)
+	}
+	if ji.ID != expectedURL {
+		t.Errorf("Wrong ID, expected '%s', actual '%s'.", expectedURL, ji.ID)
+	}
+
+	expectedTagCount := 3
+	actualTagCount := len(ji.Tags)
+	if actualTagCount < expectedTagCount {
+		t.Errorf("Wrong number of tags, expected %v, actual %v", expectedTagCount, actualTagCount)
+	} else if ji.Tags[0] != "demo" || ji.Tags[1] != "test" || ji.Tags[2] != "xxx" {
+		t.Errorf("Wrong tags")
+	}
+}
+
 func TestArticleExportInit(t *testing.T) {
 	title := "Demo Title"
 	miniContent := "Demo Content"
