@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -71,7 +72,7 @@ func (ji *jsfItem) init(published, modified time.Time, title, directory, tagList
 		return err
 	}
 
-	u, err := url.Parse(directory)
+	u, err := url.Parse(filepath.Base(directory))
 	if err != nil {
 		return err
 	}
