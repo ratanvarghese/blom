@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -204,7 +206,7 @@ func TestDualDateStr(t *testing.T) {
 	}
 }
 
-func TestGetAttachPaths(t *testing.T) {
+func setupAttachPaths(t *testing.T) (string, string, map[string]bool) {
 	articlePath, err := ioutil.TempDir(".", "testblom")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
@@ -238,6 +240,19 @@ func TestGetAttachPaths(t *testing.T) {
 	expectedAttachPaths[jpeg1Path] = true
 	expectedAttachPaths[jpeg2Path] = true
 
+	return articlePath, attachPath, expectedAttachPaths
+}
+
+func teardownAttachPaths(t *testing.T, articlePath string) {
+	err := os.RemoveAll(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) AFTER RUNNING TEST")
+	}
+
+}
+
+func TestGetAttachPaths(t *testing.T) {
+	articlePath, _, expectedAttachPaths := setupAttachPaths(t)
 	attachPaths, err := getAttachPaths(articlePath)
 	if err != nil {
 		t.Errorf("Error (%s) for valid inputs.", err.Error())
@@ -260,8 +275,27 @@ func TestGetAttachPaths(t *testing.T) {
 			t.Errorf("Missing path '%s'.", someAttachPath)
 		}
 	}
-	err = os.RemoveAll(articlePath)
+	teardownAttachPaths(t, articlePath)
+}
+
+func TestAttachmentsFromReaders(t *testing.T) {
+	article := "demo"
+	filenames := []string{"a1.jpeg", "a2.jpeg", "a3.jpeg"}
+	buf1 := bytes.NewBuffer(jpegBytes)
+	buf2 := bytes.NewBuffer(jpegBytes)
+	buf3 := bytes.NewBuffer(jpegBytes)
+	buffers := []io.Reader{buf1, buf2, buf3}
+
+	attachments, err := attachmentsFromReaders(article, filenames, buffers)
 	if err != nil {
-		t.Errorf("Error (%s) AFTER RUNNING TEST")
+		t.Errorf("Error (%s) with valid inputs.", err.Error())
+	}
+
+	for i, filename := range filenames {
+		var expected jsfAttachment
+		expected.init(filename, article, jpegBytes)
+		if attachments[i] != expected {
+			t.Errorf("[At index %v] expected %v, actual %v.", i, expected, attachments[i])
+		}
 	}
 }

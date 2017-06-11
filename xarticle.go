@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -123,4 +124,14 @@ func getAttachPaths(articlePath string) (map[string]bool, error) {
 	}
 
 	return res, nil
+}
+
+func attachmentsFromReaders(article string, filenames []string, buffers []io.Reader) ([]jsfAttachment, error) {
+	if len(filenames) != len(buffers) {
+		return nil, errors.New("Mismatch between filename count and buffer count.")
+	}
+
+	attachList := make([]jsfAttachment, len(filenames))
+
+	return attachList, errors.New("Not implemented")
 }
