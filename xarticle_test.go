@@ -34,13 +34,75 @@ func TestAttachInitJPEG(t *testing.T) {
 	}
 }
 
-func TestItemInit(t *testing.T) {
+func TestItemInitPubAfterMod(t *testing.T) {
 	published, err := time.Parse("2006-01-02", "2017-06-09")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
 
 	modified, err := time.Parse("2006-01-02", "2017-06-08")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	var ji jsfItem
+	err = ji.init(published, modified, "Hey", "hey", "")
+	if err != nil {
+		t.Errorf("Error (%s) for valid input.", err.Error())
+	}
+
+	expectedPub := published.Format(time.RFC3339)
+	if ji.DatePublished != expectedPub {
+		t.Errorf("Wrong publish date, expected '%s', actual '%s'.", expectedPub, ji.DatePublished)
+	}
+
+	if ji.DateModified != expectedPub {
+		t.Errorf("Not converting modified date to publish date, when publish date is later.")
+	}
+}
+
+func TestItemInitBlanks(t *testing.T) {
+	published, err := time.Parse("2006-01-02", "2017-06-09")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	modified, err := time.Parse("2006-01-02", "2017-06-08")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	var ji1 jsfItem
+	err = ji1.init(published, modified, "", "hey", "")
+	if err == nil {
+		t.Errorf("No error for blank title")
+	}
+
+	var ji2 jsfItem
+	err = ji2.init(published, modified, "Hey", "", "")
+	if err == nil {
+		t.Errorf("No error for blank directory")
+	}
+
+	var ji3 jsfItem
+	err = ji3.init(published, modified, "Hey", "hey", "")
+	if err != nil {
+		t.Errorf("Error (%s) for blank tags", err.Error())
+	}
+
+	if len(ji3.Tags) > 0 {
+		t.Errorf("%v tags when none provided.", len(ji3.Tags))
+	}
+
+}
+
+func TestItemInit(t *testing.T) {
+	published, err := time.Parse("2006-01-02", "2017-06-08")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	modified, err := time.Parse("2006-01-02", "2017-06-09")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
