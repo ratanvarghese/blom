@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -56,20 +55,11 @@ func (ja *jsfAttachment) init(basename string, article string, fileStart []byte)
 	return nil
 }
 
-func templateToWriter(wr io.Writer, published time.Time, title, templateText, content string) error {
-	var articleE articleExport
+func (articleE *articleExport) init(published time.Time, title string, content []byte) {
 	articleE.Title = title
 	articleE.Date = template.HTML(dualDateStr(published))
 	articleE.Today = "Today is " + template.HTML(dualDateStr(time.Now()))
 	articleE.ContentHTML = template.HTML(content)
-
-	tmpl := template.New("master")
-	_, err := tmpl.Parse(templateText)
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(wr, articleE)
-	return err
 }
 
 func dualDateStr(gDate time.Time) string {

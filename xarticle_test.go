@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"strings"
@@ -35,26 +34,20 @@ func TestAttachInitJPEG(t *testing.T) {
 	}
 }
 
-func TestTemplateToWriter(t *testing.T) {
-	miniTemplate := "{{.Title}}\n{{.Today}}\n{{.Date}}\n{{.ContentHTML}}"
+func TestArticleExportInit(t *testing.T) {
 	title := "Demo Title"
+	miniContent := "Demo Content"
+
 	published, err := time.Parse("2006-01-02", "2017-06-10")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
-	outputBuf := new(bytes.Buffer)
-	miniContent := "Demo Content"
 
-	err = templateToWriter(outputBuf, published, title, miniTemplate, miniContent)
-	if err != nil {
-		t.Errorf("Error (%s) when given valid inputs.", err.Error())
-	}
+	var articleE articleExport
+	articleE.init(published, title, []byte(miniContent))
 
-	resultLines := strings.Split(outputBuf.String(), "\n")
-	if len(resultLines) < 1 {
-		t.Errorf("No title")
-	} else if resultLines[0] != title {
-		t.Errorf("Wrong title, expected '%s', actual '%s'.", title, resultLines[0])
+	if articleE.Title != title {
+		t.Errorf("Wrong title, expected '%s', actual '%s'.", title, articleE.Title)
 	}
 
 	today := time.Now()
@@ -62,23 +55,16 @@ func TestTemplateToWriter(t *testing.T) {
 	tqString := tqtime.LongDate(today.Year(), today.YearDay())
 	tqStringBetter := strings.Replace(tqString, "After Tranquility", "AT", 1)
 	expectedTodayString := fmt.Sprintf("Today is %s<br />[Gregorian: %s]", tqStringBetter, gregString)
-	if len(resultLines) < 2 {
-		t.Errorf("No 'today' string")
-	} else if resultLines[1] != expectedTodayString {
-		t.Errorf("Wrong 'today' string, expected '%s', actual '%s'.", expectedTodayString, resultLines[1])
+	if string(articleE.Today) != expectedTodayString {
+		t.Errorf("Wrong 'today' string, expected '%s', actual '%s'.", expectedTodayString, articleE.Today)
 	}
-
 	expectedDate := "Sunday, 17 Lavoisier, 48 AT<br />[Gregorian: Saturday, 10 June, 2017 CE]"
-	if len(resultLines) < 3 {
-		t.Errorf("No 'date' string")
-	} else if resultLines[2] != expectedDate {
-		t.Errorf("Wrong 'date' string, expected '%s', actual '%s'.", expectedDate, resultLines[2])
+	if string(articleE.Date) != expectedDate {
+		t.Errorf("Wrong 'date' string, expected '%s', actual '%s'.", expectedDate, articleE.Date)
 	}
 
-	if len(resultLines) < 4 {
-		t.Errorf("No content")
-	} else if resultLines[3] != miniContent {
-		t.Errorf("Wrong content, expected '%s', actual '%s'.", miniContent, resultLines[3])
+	if string(articleE.ContentHTML) != miniContent {
+		t.Errorf("Wrong content, expected '%s', actual '%s'.", miniContent, articleE.ContentHTML)
 	}
 
 }
