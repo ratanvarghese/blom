@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -199,5 +201,61 @@ func TestDualDateStr(t *testing.T) {
 	expected := "Sunday, 17 Lavoisier, 48 AT<br />[Gregorian: Saturday, 10 June, 2017 CE]"
 	if result != expected {
 		t.Errorf("Wrong date, expected '%s', actual '%s'.", expected, result)
+	}
+}
+
+func TestGetAttachPaths(t *testing.T) {
+	articlePath, err := ioutil.TempDir(".", "testblom")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	attachPath := filepath.Join(articlePath, attachmentDir)
+	err = os.Mkdir(attachPath, 0777)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	jpeg1Path := filepath.Join(attachPath, "jpeg_1.jpeg")
+	err = ioutil.WriteFile(jpeg1Path, jpegBytes, 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	jpeg2Path := filepath.Join(attachPath, "jpeg_2.jpeg")
+	err = ioutil.WriteFile(jpeg2Path, jpegBytes, 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	expectedAttachPaths := make(map[string]bool)
+	expectedAttachPaths[jpeg1Path] = true
+	expectedAttachPaths[jpeg2Path] = true
+
+	attachPaths, err := getAttachPaths(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) for valid inputs.", err.Error())
+	}
+
+	expectedPathCount := len(expectedAttachPaths)
+	actualPathCount := len(attachPaths)
+	if actualPathCount != expectedPathCount {
+		t.Errorf("Wrong number of attachment paths, expected %v, actual %v.", expectedPathCount, actualPathCount)
+	}
+
+	for someAttachPath, _ := range attachPaths {
+		if !expectedAttachPaths[someAttachPath] {
+			t.Errorf("Unexpected path '%s'.", someAttachPath)
+		}
+	}
+
+	for someAttachPath, _ := range expectedAttachPaths {
+		if !attachPaths[someAttachPath] {
+			t.Errorf("Missing path '%s'.", someAttachPath)
+		}
+	}
+	err = os.RemoveAll(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) AFTER RUNNING TEST")
 	}
 }

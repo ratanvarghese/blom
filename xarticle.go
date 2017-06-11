@@ -106,3 +106,7 @@ func dualDateStr(gDate time.Time) string {
 	gDateStr := gDate.Format(outputGDateFormat)
 	return fmt.Sprintf("%s<br />[Gregorian: %s]", tqDateBetter, gDateStr)
 }
+
+func getAttachPaths(articlePath string) (map[string]bool, error) {
+	return nil, errors.New("Not implemented")
+}
