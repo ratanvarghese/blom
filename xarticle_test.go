@@ -228,6 +228,12 @@ func TestGetAttachPaths(t *testing.T) {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
 
+	ignoreMe := filepath.Join(articlePath, "ignoreMe.jpeg")
+	err = ioutil.WriteFile(ignoreMe, jpegBytes, 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
 	expectedAttachPaths := make(map[string]bool)
 	expectedAttachPaths[jpeg1Path] = true
 	expectedAttachPaths[jpeg2Path] = true

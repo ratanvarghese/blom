@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -108,5 +109,18 @@ func dualDateStr(gDate time.Time) string {
 }
 
 func getAttachPaths(articlePath string) (map[string]bool, error) {
-	return nil, errors.New("Not implemented")
+	attachPath := filepath.Join(articlePath, attachmentDir)
+	attachList, err := ioutil.ReadDir(attachPath)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make(map[string]bool)
+	for _, attachFileInfo := range attachList {
+		if !attachFileInfo.IsDir() {
+			res[filepath.Join(attachPath, attachFileInfo.Name())] = true
+		}
+	}
+
+	return res, nil
 }
