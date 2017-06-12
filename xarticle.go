@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
+	"github.com/russross/blackfriday"
 	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -41,6 +43,8 @@ type articleExport struct {
 const hostRawURL = "http://ratan.blog"
 const attachmentDir = "attachments"
 const listSeperator = ","
+const MDContentFile = "content.md"
+const HTMLContentFile = "content.html"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
@@ -143,4 +147,29 @@ func attachmentsFromReaders(article string, filepaths []string, readers []io.Rea
 	}
 
 	return attachList, nil
+}
+
+func getArticleContent(articlePath string) ([]byte, time.Time, error) {
+	var modified time.Time
+	var articleContent []byte
+	MDContentPath := filepath.Join(articlePath, MDContentFile)
+	HTMLContentPath := filepath.Join(articlePath, HTMLContentFile)
+	if MDFileInfo, err := os.Stat(MDContentPath); err == nil {
+		mdContent, err := ioutil.ReadFile(MDContentPath)
+		if err != nil {
+			return nil, modified, err
+		}
+		articleContent = blackfriday.MarkdownCommon(mdContent)
+		modified = MDFileInfo.ModTime()
+	} else if HTMLFileInfo, err := os.Stat(HTMLContentPath); err == nil {
+		articleContent, err = ioutil.ReadFile(HTMLContentPath)
+		if err != nil {
+			return nil, modified, err
+		}
+		modified = HTMLFileInfo.ModTime()
+	} else {
+		err := fmt.Errorf("No '%s' or '%s' found.", MDContentPath, HTMLContentPath)
+		return nil, modified, err
+	}
+	return articleContent, modified, nil
 }

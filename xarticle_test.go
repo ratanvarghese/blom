@@ -299,3 +299,26 @@ func TestAttachmentsFromReaders(t *testing.T) {
 		}
 	}
 }
+
+func TestGetArticleContentMD(t *testing.T) {
+	articlePath, err := ioutil.TempDir(".", "testblom")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	MDContent := "## This is a heading"
+	MDPath := filepath.Join(articlePath, MDContentFile)
+	err = ioutil.WriteFile(MDPath, []byte(MDContent), 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	articleContent, _, err := getArticleContent(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) with valid inputs.", err.Error())
+	}
+
+	expectedArticleContent := "<h2>This is a heading</h2>\n"
+	if string(articleContent) != expectedArticleContent {
+		t.Errorf("Wrong content, expected '%s', actual '%s'.", expectedArticleContent, string(articleContent))
+	}
+	teardownAttachPaths(t, articlePath)
+}
