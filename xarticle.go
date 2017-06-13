@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
@@ -177,5 +178,15 @@ func getArticleContent(articlePath string) ([]byte, time.Time, error) {
 
 func getPreviousItem(articlePath string) (jsfItem, bool, error) {
 	var ji jsfItem
-	return ji, false, errors.New("Not implemented")
+	itemFilePath := filepath.Join(articlePath, itemFile)
+	if _, err := os.Stat(itemFilePath); err == nil {
+		fileContent, err := ioutil.ReadFile(itemFilePath)
+		if err != nil {
+			return ji, true, err
+		}
+
+		err = json.Unmarshal(fileContent, &ji)
+		return ji, true, err
+	}
+	return ji, false, nil
 }

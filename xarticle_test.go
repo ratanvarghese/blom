@@ -375,16 +375,16 @@ func TestGetPreviousItemExistent(t *testing.T) {
 	var ji jsfItem
 	err = ji.init(published, modified, "demo title", "demo", "demo,test,xxx")
 
-	itemFile := filepath.Join(articlePath, itemFile)
-	f, err := os.Create(itemFile)
+	itemFilePath := filepath.Join(articlePath, itemFile)
+	f, err := os.Create(itemFilePath)
 	if err != nil {
-		panic(err)
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
 	enc := json.NewEncoder(f)
 	enc.SetEscapeHTML(false)
 	err = enc.Encode(ji)
 	if err != nil {
-		panic(err)
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
 
 	jiOutput, fileExists, err := getPreviousItem(articlePath)
@@ -403,7 +403,6 @@ func TestGetPreviousItemExistent(t *testing.T) {
 	if jiOutput.DateModified != ji.DateModified {
 		t.Errorf("Wrong date modified, expected '%v', actual '%v',", ji.DateModified, jiOutput.DateModified)
 	}
-
 	if jiOutput.DatePublished != ji.DatePublished {
 		t.Errorf("Wrong date published, expected '%v', actual '%v',", ji.DatePublished, jiOutput.DatePublished)
 	}
