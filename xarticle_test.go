@@ -251,7 +251,7 @@ func setupAttachPaths(t *testing.T) (string, string, map[string]bool) {
 func teardownArticlePath(t *testing.T, articlePath string) {
 	err := os.RemoveAll(articlePath)
 	if err != nil {
-		t.Errorf("Error (%s) AFTER RUNNING TEST")
+		t.Errorf("Error (%s) AFTER RUNNING TEST", err.Error())
 	}
 
 }
@@ -269,13 +269,13 @@ func TestGetAttachPaths(t *testing.T) {
 		t.Errorf("Wrong number of attachment paths, expected %v, actual %v.", expectedPathCount, actualPathCount)
 	}
 
-	for someAttachPath, _ := range attachPaths {
+	for someAttachPath := range attachPaths {
 		if !expectedAttachPaths[someAttachPath] {
 			t.Errorf("Unexpected path '%s'.", someAttachPath)
 		}
 	}
 
-	for someAttachPath, _ := range expectedAttachPaths {
+	for someAttachPath := range expectedAttachPaths {
 		if !attachPaths[someAttachPath] {
 			t.Errorf("Missing path '%s'.", someAttachPath)
 		}
@@ -298,7 +298,10 @@ func TestAttachmentsFromReaders(t *testing.T) {
 
 	for i, filename := range filenames {
 		var expected jsfAttachment
-		expected.init(filename, article, jpegBytes)
+		err = expected.init(filename, article, jpegBytes)
+		if err != nil {
+			t.Errorf("Error (%s) with attachment init.", err.Error())
+		}
 		if attachments[i] != expected {
 			t.Errorf("[At index %v] expected %v, actual %v.", i, expected, attachments[i])
 		}
@@ -308,13 +311,13 @@ func TestAttachmentsFromReaders(t *testing.T) {
 func TestGetArticleContentMD(t *testing.T) {
 	articlePath := setupArticlePath(t)
 	MDContent := "## This is a heading"
-	MDPath := filepath.Join(articlePath, MDContentFile)
+	MDPath := filepath.Join(articlePath, contentFileMD)
 	err := ioutil.WriteFile(MDPath, []byte(MDContent), 0664)
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
 	HTMLContent := "Ignore Me"
-	HTMLPath := filepath.Join(articlePath, HTMLContentFile)
+	HTMLPath := filepath.Join(articlePath, contentFileHTML)
 	err = ioutil.WriteFile(HTMLPath, []byte(HTMLContent), 0664)
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
@@ -334,7 +337,7 @@ func TestGetArticleContentMD(t *testing.T) {
 func TestGetArticleContentHTML(t *testing.T) {
 	articlePath := setupArticlePath(t)
 	HTMLContent := "Do NOT Ignore Me"
-	HTMLPath := filepath.Join(articlePath, HTMLContentFile)
+	HTMLPath := filepath.Join(articlePath, contentFileHTML)
 	err := ioutil.WriteFile(HTMLPath, []byte(HTMLContent), 0664)
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
@@ -374,6 +377,9 @@ func TestGetPreviousItemExistent(t *testing.T) {
 	}
 	var ji jsfItem
 	err = ji.init(published, modified, "demo title", "demo", "demo,test,xxx")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
 
 	itemFilePath := filepath.Join(articlePath, itemFile)
 	f, err := os.Create(itemFilePath)

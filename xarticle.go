@@ -44,8 +44,8 @@ type articleExport struct {
 const hostRawURL = "http://ratan.blog"
 const attachmentDir = "attachments"
 const listSeperator = ","
-const MDContentFile = "content.md"
-const HTMLContentFile = "content.html"
+const contentFileMD = "content.md"
+const contentFileHTML = "content.html"
 const itemFile = "item.json"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
@@ -134,7 +134,7 @@ func getAttachPaths(articlePath string) (map[string]bool, error) {
 
 func attachmentsFromReaders(article string, filepaths []string, readers []io.Reader) ([]jsfAttachment, error) {
 	if len(filepaths) != len(readers) {
-		return nil, errors.New("Mismatch between filepath count and reader count.")
+		return nil, errors.New("mismatch between filepath count and reader count")
 	}
 
 	const bytesNeededToFindMIMEType = 512
@@ -145,7 +145,10 @@ func attachmentsFromReaders(article string, filepaths []string, readers []io.Rea
 		if err != nil {
 			return attachList, err
 		}
-		attachList[i].init(filepath.Base(curpath), article, b)
+		err = attachList[i].init(filepath.Base(curpath), article, b)
+		if err != nil {
+			return attachList, err
+		}
 	}
 
 	return attachList, nil
@@ -154,8 +157,8 @@ func attachmentsFromReaders(article string, filepaths []string, readers []io.Rea
 func getArticleContent(articlePath string) ([]byte, time.Time, error) {
 	var modified time.Time
 	var articleContent []byte
-	MDContentPath := filepath.Join(articlePath, MDContentFile)
-	HTMLContentPath := filepath.Join(articlePath, HTMLContentFile)
+	MDContentPath := filepath.Join(articlePath, contentFileMD)
+	HTMLContentPath := filepath.Join(articlePath, contentFileHTML)
 	if MDFileInfo, err := os.Stat(MDContentPath); err == nil {
 		mdContent, err := ioutil.ReadFile(MDContentPath)
 		if err != nil {
@@ -170,7 +173,7 @@ func getArticleContent(articlePath string) ([]byte, time.Time, error) {
 		}
 		modified = HTMLFileInfo.ModTime()
 	} else {
-		err := fmt.Errorf("No '%s' or '%s' found.", MDContentPath, HTMLContentPath)
+		err := fmt.Errorf("no '%s' or '%s' found", MDContentPath, HTMLContentPath)
 		return nil, modified, err
 	}
 	return articleContent, modified, nil
