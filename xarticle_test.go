@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"io"
@@ -206,14 +207,18 @@ func TestDualDateStr(t *testing.T) {
 	}
 }
 
-func setupAttachPaths(t *testing.T) (string, string, map[string]bool) {
+func setupArticlePath(t *testing.T) string {
 	articlePath, err := ioutil.TempDir(".", "testblom")
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
+	return articlePath
+}
 
+func setupAttachPaths(t *testing.T) (string, string, map[string]bool) {
+	articlePath := setupArticlePath(t)
 	attachPath := filepath.Join(articlePath, attachmentDir)
-	err = os.Mkdir(attachPath, 0777)
+	err := os.Mkdir(attachPath, 0777)
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
@@ -243,7 +248,7 @@ func setupAttachPaths(t *testing.T) (string, string, map[string]bool) {
 	return articlePath, attachPath, expectedAttachPaths
 }
 
-func teardownAttachPaths(t *testing.T, articlePath string) {
+func teardownArticlePath(t *testing.T, articlePath string) {
 	err := os.RemoveAll(articlePath)
 	if err != nil {
 		t.Errorf("Error (%s) AFTER RUNNING TEST")
@@ -275,7 +280,7 @@ func TestGetAttachPaths(t *testing.T) {
 			t.Errorf("Missing path '%s'.", someAttachPath)
 		}
 	}
-	teardownAttachPaths(t, articlePath)
+	teardownArticlePath(t, articlePath)
 }
 
 func TestAttachmentsFromReaders(t *testing.T) {
@@ -301,13 +306,10 @@ func TestAttachmentsFromReaders(t *testing.T) {
 }
 
 func TestGetArticleContentMD(t *testing.T) {
-	articlePath, err := ioutil.TempDir(".", "testblom")
-	if err != nil {
-		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
-	}
+	articlePath := setupArticlePath(t)
 	MDContent := "## This is a heading"
 	MDPath := filepath.Join(articlePath, MDContentFile)
-	err = ioutil.WriteFile(MDPath, []byte(MDContent), 0664)
+	err := ioutil.WriteFile(MDPath, []byte(MDContent), 0664)
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
@@ -326,17 +328,14 @@ func TestGetArticleContentMD(t *testing.T) {
 	if string(articleContent) != expectedArticleContent {
 		t.Errorf("Wrong content, expected '%s', actual '%s'.", expectedArticleContent, string(articleContent))
 	}
-	teardownAttachPaths(t, articlePath)
+	teardownArticlePath(t, articlePath)
 }
 
 func TestGetArticleContentHTML(t *testing.T) {
-	articlePath, err := ioutil.TempDir(".", "testblom")
-	if err != nil {
-		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
-	}
+	articlePath := setupArticlePath(t)
 	HTMLContent := "Do NOT Ignore Me"
 	HTMLPath := filepath.Join(articlePath, HTMLContentFile)
-	err = ioutil.WriteFile(HTMLPath, []byte(HTMLContent), 0664)
+	err := ioutil.WriteFile(HTMLPath, []byte(HTMLContent), 0664)
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
@@ -348,5 +347,66 @@ func TestGetArticleContentHTML(t *testing.T) {
 	if string(articleContent) != HTMLContent {
 		t.Errorf("Wrong content, expected '%s', actual '%s'.", HTMLContent, string(articleContent))
 	}
-	teardownAttachPaths(t, articlePath)
+	teardownArticlePath(t, articlePath)
+}
+
+func TestGetPreviousItemNonexistent(t *testing.T) {
+	articlePath := setupArticlePath(t)
+	_, fileExists, err := getPreviousItem(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) with valid inputs.", err.Error())
+	}
+	if fileExists {
+		t.Errorf("fileExists == true when item file does not exist.")
+	}
+	teardownArticlePath(t, articlePath)
+}
+
+func TestGetPreviousItemExistent(t *testing.T) {
+	articlePath := setupArticlePath(t)
+	published, err := time.Parse("2006-01-02", "2017-06-08")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	modified, err := time.Parse("2006-01-02", "2017-06-09")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	var ji jsfItem
+	err = ji.init(published, modified, "demo title", "demo", "demo,test,xxx")
+
+	itemFile := filepath.Join(articlePath, itemFile)
+	f, err := os.Create(itemFile)
+	if err != nil {
+		panic(err)
+	}
+	enc := json.NewEncoder(f)
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(ji)
+	if err != nil {
+		panic(err)
+	}
+
+	jiOutput, fileExists, err := getPreviousItem(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) with valid inputs.", err.Error())
+	}
+	if !fileExists {
+		t.Errorf("fileExists != true when item file exists.")
+	}
+	if jiOutput.ID != ji.ID {
+		t.Errorf("Wrong ID, expected '%s', actual '%s'.", ji.ID, jiOutput.ID)
+	}
+	if jiOutput.Title != ji.Title {
+		t.Errorf("Wrong title, expected '%s', actual '%s'.", ji.Title, jiOutput.Title)
+	}
+	if jiOutput.DateModified != ji.DateModified {
+		t.Errorf("Wrong date modified, expected '%v', actual '%v',", ji.DateModified, jiOutput.DateModified)
+	}
+
+	if jiOutput.DatePublished != ji.DatePublished {
+		t.Errorf("Wrong date published, expected '%v', actual '%v',", ji.DatePublished, jiOutput.DatePublished)
+	}
+
+	teardownArticlePath(t, articlePath)
 }

@@ -22,7 +22,6 @@ const templateFile = "template.html"
 const siteURL = "http://ratan.blog"
 const contentFile = "content.html"
 const contentMarkdown = "content.md"
-const itemFile = "item.json"
 const outputWebpage = "index.html"
 
 const defaultTemplate = "../../template.html"

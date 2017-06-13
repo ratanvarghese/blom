@@ -45,6 +45,7 @@ const attachmentDir = "attachments"
 const listSeperator = ","
 const MDContentFile = "content.md"
 const HTMLContentFile = "content.html"
+const itemFile = "item.json"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
@@ -172,4 +173,9 @@ func getArticleContent(articlePath string) ([]byte, time.Time, error) {
 		return nil, modified, err
 	}
 	return articleContent, modified, nil
+}
+
+func getPreviousItem(articlePath string) (jsfItem, bool, error) {
+	var ji jsfItem
+	return ji, false, errors.New("Not implemented")
 }
