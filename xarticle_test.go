@@ -311,6 +311,12 @@ func TestGetArticleContentMD(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
 	}
+	HTMLContent := "Ignore Me"
+	HTMLPath := filepath.Join(articlePath, HTMLContentFile)
+	err = ioutil.WriteFile(HTMLPath, []byte(HTMLContent), 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
 	articleContent, _, err := getArticleContent(articlePath)
 	if err != nil {
 		t.Errorf("Error (%s) with valid inputs.", err.Error())
@@ -319,6 +325,28 @@ func TestGetArticleContentMD(t *testing.T) {
 	expectedArticleContent := "<h2>This is a heading</h2>\n"
 	if string(articleContent) != expectedArticleContent {
 		t.Errorf("Wrong content, expected '%s', actual '%s'.", expectedArticleContent, string(articleContent))
+	}
+	teardownAttachPaths(t, articlePath)
+}
+
+func TestGetArticleContentHTML(t *testing.T) {
+	articlePath, err := ioutil.TempDir(".", "testblom")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	HTMLContent := "Do NOT Ignore Me"
+	HTMLPath := filepath.Join(articlePath, HTMLContentFile)
+	err = ioutil.WriteFile(HTMLPath, []byte(HTMLContent), 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	articleContent, _, err := getArticleContent(articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) with valid inputs.", err.Error())
+	}
+
+	if string(articleContent) != HTMLContent {
+		t.Errorf("Wrong content, expected '%s', actual '%s'.", HTMLContent, string(articleContent))
 	}
 	teardownAttachPaths(t, articlePath)
 }
