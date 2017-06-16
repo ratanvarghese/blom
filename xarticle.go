@@ -47,6 +47,7 @@ const listSeperator = ","
 const contentFileMD = "content.md"
 const contentFileHTML = "content.html"
 const itemFile = "item.json"
+const finalWebpageFile = "index.html"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
@@ -192,4 +193,82 @@ func getPreviousItem(articlePath string) (jsfItem, bool, error) {
 		return ji, true, err
 	}
 	return ji, false, nil
+}
+
+func processArticle(tmpl *template.Template, articleRelativePath, title, tagList string) (jsfItem, error) {
+	var res jsfItem
+	articlePath, err := filepath.Abs(articleRelativePath)
+	if err != nil {
+		return res, err
+	}
+	content, modified, err := getArticleContent(articlePath)
+	if err != nil {
+		return res, err
+	}
+	prevItem, prevItemExists, err := getPreviousItem(articlePath)
+	if err != nil {
+		return res, err
+	}
+	var published time.Time
+	if prevItemExists {
+		if len(title) < 1 {
+			title = prevItem.Title
+		}
+		published, err = time.Parse(time.RFC3339, prevItem.DatePublished)
+		if err != nil {
+			return res, err
+		}
+	} else {
+		published = time.Now()
+	}
+	var exportArgs articleExport
+	exportArgs.init(published, title, content)
+	finalWebpagePath := filepath.Join(articlePath, finalWebpageFile)
+	webpageFileHandle, err := os.Create(finalWebpagePath)
+	if err != nil {
+		return res, err
+	}
+	err = tmpl.Execute(webpageFileHandle, exportArgs)
+	if err != nil {
+		return res, err
+	}
+	webpageFileHandle.Close()
+
+	res.init(published, modified, title, articlePath, tagList)
+	attachPathMap, err := getAttachPaths(articlePath)
+	if err != nil {
+		return res, err
+	}
+
+	attachPathList := make([]string, len(attachPathMap))
+	attachFileList := make([]*os.File, len(attachPathMap))
+	attachReaderList := make([]io.Reader, len(attachPathMap))
+	i := 0
+	for path := range attachPathMap {
+		attachPathList[i] = path
+		attachFileList[i], err = os.Open(path)
+		attachReaderList[i] = attachFileList[i]
+		if err != nil {
+			return res, err
+		}
+		i++
+	}
+	res.Attachments, err = attachmentsFromReaders(filepath.Base(articlePath), attachPathList, attachReaderList)
+	if err != nil {
+		return res, err
+	}
+	for _, reader := range attachFileList {
+		reader.Close()
+	}
+
+	itemFilePath := filepath.Join(articlePath, itemFile)
+	itemFileHandle, err := os.Open(itemFilePath)
+	if err != nil {
+		return res, err
+	}
+	enc := json.NewEncoder(itemFileHandle)
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(res)
+
+	return res, err
 }
