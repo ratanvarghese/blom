@@ -195,13 +195,86 @@ func getPreviousItem(articlePath string) (jsfItem, bool, error) {
 	return ji, false, nil
 }
 
+func filesFromAttachPathMap(attachPathMap map[string]bool) ([]string, []*os.File, []io.Reader, error) {
+	attachPathList := make([]string, len(attachPathMap))
+	attachFileList := make([]*os.File, len(attachPathMap))
+	attachReaderList := make([]io.Reader, len(attachPathMap))
+	i := 0
+	for path := range attachPathMap {
+		attachPathList[i] = path
+		var err error
+		attachFileList[i], err = os.Open(path)
+		if err != nil {
+			return attachPathList, attachFileList, attachReaderList, err
+		}
+		attachReaderList[i] = attachFileList[i]
+		i++
+	}
+	return attachPathList, attachFileList, attachReaderList, nil
+}
+
+func writeItemFile(res jsfItem, articlePath string) error {
+	itemFilePath := filepath.Join(articlePath, itemFile)
+	f, err := os.Open(itemFilePath)
+	if err != nil {
+		return err
+	}
+	enc := json.NewEncoder(f)
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(res)
+	if err != nil {
+		return err
+	}
+	err = f.Close()
+	return err
+}
+
+func (res *jsfItem) initAttachments(articlePath string) error {
+	attachPathMap, err := getAttachPaths(articlePath)
+	if err != nil {
+		return err
+	}
+	attachPathList, attachFileList, attachReaderList, err := filesFromAttachPathMap(attachPathMap)
+	if err != nil {
+		return err
+	}
+	res.Attachments, err = attachmentsFromReaders(filepath.Base(articlePath), attachPathList, attachReaderList)
+	if err != nil {
+		return err
+	}
+	for _, reader := range attachFileList {
+		reader.Close()
+	}
+	return nil
+}
+
+func (prevItem *jsfItem) extractOldData(title, tagList string) (time.Time, string, string, error) {
+	if len(title) < 1 {
+		title = prevItem.Title
+	}
+	if len(tagList) < 1 {
+		tagList = strings.Join(prevItem.Tags, listSeperator)
+	}
+	published, err := time.Parse(time.RFC3339, prevItem.DatePublished)
+	return published, title, tagList, err
+}
+
+func (exportArgs *articleExport) writeFinalWebpage(tmpl *template.Template, articlePath string) error {
+	finalWebpagePath := filepath.Join(articlePath, finalWebpageFile)
+	f, err := os.Create(finalWebpagePath)
+	if err != nil {
+		return err
+	}
+	err = tmpl.Execute(f, exportArgs)
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
+
 func processArticle(tmpl *template.Template, articleRelativePath, title, tagList string) (jsfItem, error) {
 	var res jsfItem
 	articlePath, err := filepath.Abs(articleRelativePath)
-	if err != nil {
-		return res, err
-	}
-	content, modified, err := getArticleContent(articlePath)
 	if err != nil {
 		return res, err
 	}
@@ -209,66 +282,28 @@ func processArticle(tmpl *template.Template, articleRelativePath, title, tagList
 	if err != nil {
 		return res, err
 	}
-	var published time.Time
+	published := time.Now()
 	if prevItemExists {
-		if len(title) < 1 {
-			title = prevItem.Title
-		}
-		published, err = time.Parse(time.RFC3339, prevItem.DatePublished)
+		published, title, tagList, err = prevItem.extractOldData(title, tagList)
 		if err != nil {
 			return res, err
 		}
-	} else {
-		published = time.Now()
+	}
+	content, modified, err := getArticleContent(articlePath)
+	if err != nil {
+		return res, err
 	}
 	var exportArgs articleExport
 	exportArgs.init(published, title, content)
-	finalWebpagePath := filepath.Join(articlePath, finalWebpageFile)
-	webpageFileHandle, err := os.Create(finalWebpagePath)
+	err = exportArgs.writeFinalWebpage(tmpl, articlePath)
 	if err != nil {
 		return res, err
 	}
-	err = tmpl.Execute(webpageFileHandle, exportArgs)
-	if err != nil {
-		return res, err
-	}
-	webpageFileHandle.Close()
-
 	res.init(published, modified, title, articlePath, tagList)
-	attachPathMap, err := getAttachPaths(articlePath)
+	err = res.initAttachments(articlePath)
 	if err != nil {
 		return res, err
 	}
-
-	attachPathList := make([]string, len(attachPathMap))
-	attachFileList := make([]*os.File, len(attachPathMap))
-	attachReaderList := make([]io.Reader, len(attachPathMap))
-	i := 0
-	for path := range attachPathMap {
-		attachPathList[i] = path
-		attachFileList[i], err = os.Open(path)
-		attachReaderList[i] = attachFileList[i]
-		if err != nil {
-			return res, err
-		}
-		i++
-	}
-	res.Attachments, err = attachmentsFromReaders(filepath.Base(articlePath), attachPathList, attachReaderList)
-	if err != nil {
-		return res, err
-	}
-	for _, reader := range attachFileList {
-		reader.Close()
-	}
-
-	itemFilePath := filepath.Join(articlePath, itemFile)
-	itemFileHandle, err := os.Open(itemFilePath)
-	if err != nil {
-		return res, err
-	}
-	enc := json.NewEncoder(itemFileHandle)
-	enc.SetEscapeHTML(false)
-	err = enc.Encode(res)
-
+	err = writeItemFile(res, articlePath)
 	return res, err
 }
