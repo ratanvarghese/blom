@@ -183,26 +183,27 @@ func getArticleContent(articlePath string) ([]byte, time.Time, error) {
 func getPreviousItem(articlePath string) (jsfItem, bool, error) {
 	var ji jsfItem
 	itemFilePath := filepath.Join(articlePath, itemFile)
-	if _, err := os.Stat(itemFilePath); err == nil {
-		fileContent, err := ioutil.ReadFile(itemFilePath)
-		if err != nil {
-			return ji, true, err
-		}
-
-		err = json.Unmarshal(fileContent, &ji)
+	if _, err := os.Stat(itemFilePath); err != nil {
+		return ji, false, nil
+	}
+	fileContent, err := ioutil.ReadFile(itemFilePath)
+	if err != nil {
 		return ji, true, err
 	}
-	return ji, false, nil
+
+	err = json.Unmarshal(fileContent, &ji)
+	return ji, true, err
 }
 
 func filesFromAttachPathMap(attachPathMap map[string]bool) ([]string, []*os.File, []io.Reader, error) {
-	attachPathList := make([]string, len(attachPathMap))
-	attachFileList := make([]*os.File, len(attachPathMap))
-	attachReaderList := make([]io.Reader, len(attachPathMap))
+	var err error
+	pathCount := len(attachPathMap)
+	attachPathList := make([]string, pathCount)
+	attachFileList := make([]*os.File, pathCount)
+	attachReaderList := make([]io.Reader, pathCount)
 	i := 0
 	for path := range attachPathMap {
 		attachPathList[i] = path
-		var err error
 		attachFileList[i], err = os.Open(path)
 		if err != nil {
 			return attachPathList, attachFileList, attachReaderList, err
@@ -243,12 +244,19 @@ func (res *jsfItem) initAttachments(articlePath string) error {
 		return err
 	}
 	for _, reader := range attachFileList {
-		reader.Close()
+		closeErr := reader.Close()
+		if closeErr != nil {
+			err = closeErr
+		}
 	}
-	return nil
+	return err
 }
 
-func (prevItem *jsfItem) extractOldData(title, tagList string) (time.Time, string, string, error) {
+func getOldData(articlePath, title, tagList string) (time.Time, string, string, error) {
+	prevItem, prevItemExists, err := getPreviousItem(articlePath)
+	if err != nil || !prevItemExists {
+		return time.Now(), title, tagList, err
+	}
 	if len(title) < 1 {
 		title = prevItem.Title
 	}
@@ -278,18 +286,11 @@ func processArticle(tmpl *template.Template, articleRelativePath, title, tagList
 	if err != nil {
 		return res, err
 	}
-	prevItem, prevItemExists, err := getPreviousItem(articlePath)
+	content, modified, err := getArticleContent(articlePath)
 	if err != nil {
 		return res, err
 	}
-	published := time.Now()
-	if prevItemExists {
-		published, title, tagList, err = prevItem.extractOldData(title, tagList)
-		if err != nil {
-			return res, err
-		}
-	}
-	content, modified, err := getArticleContent(articlePath)
+	published, title, tagList, err := getOldData(articlePath, title, tagList)
 	if err != nil {
 		return res, err
 	}
