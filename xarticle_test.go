@@ -417,21 +417,8 @@ func TestGetPreviousItemExistent(t *testing.T) {
 }
 
 func TestFilesFromAttachPathMap(t *testing.T) {
-	articlePath := setupArticlePath(t)
-	jpegFile1 := filepath.Join(articlePath, "file1.jpeg")
-	jpegFile2 := filepath.Join(articlePath, "file2.jpeg")
-	err := ioutil.WriteFile(jpegFile1, jpegBytes, 0664)
-	if err != nil {
-		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
-	}
-	err = ioutil.WriteFile(jpegFile2, jpegBytes, 0664)
-	if err != nil {
-		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
-	}
+	articlePath, _, attachPathMap := setupAttachPaths(t)
 
-	attachPathMap := make(map[string]bool)
-	attachPathMap[jpegFile1] = true
-	attachPathMap[jpegFile2] = true
 	expectedLen := len(attachPathMap)
 
 	attachPathList, attachFileList, attachReaderList, err := filesFromAttachPathMap(attachPathMap)
@@ -521,6 +508,35 @@ func TestWriteItemFile(t *testing.T) {
 	}
 	if res.Tags[0] != ji.Tags[0] || res.Tags[1] != ji.Tags[1] {
 		t.Errorf("Wrong tags, expected '%v', actual '%v'", ji.Tags, res.Tags)
+	}
+
+	teardownArticlePath(t, articlePath)
+}
+
+func TestInitAttachments(t *testing.T) {
+	articlePath, attachPath, attachPathMap := setupAttachPaths(t)
+	var ji jsfItem
+	ji.initAttachments(articlePath)
+
+	for _, attach := range ji.Attachments {
+		if attach.MIMEType != "image/jpeg" {
+			t.Errorf("Unexpected MIME type: '%s'", attach.MIMEType)
+		}
+
+		attachFileName := filepath.Base(attach.URL)
+		attachExpectedPath := filepath.Join(attachPath, attachFileName)
+		if !attachPathMap[attachExpectedPath] {
+			t.Errorf("Unexpected URL: '%s'", attach.URL)
+		}
+	}
+
+	for attach := range attachPathMap {
+		attachFileName := filepath.Base(attach)
+		articleName := filepath.Base(articlePath)
+		attachExpectedURL := hostRawURL + "/" + articleName + "/attachments/" + attachFileName
+		if ji.Attachments[0].URL != attachExpectedURL && ji.Attachments[1].URL != attachExpectedURL {
+			t.Errorf("Missing URL: '%s'", attachExpectedURL)
+		}
 	}
 
 	teardownArticlePath(t, articlePath)
