@@ -533,11 +533,87 @@ func TestInitAttachments(t *testing.T) {
 	for attach := range attachPathMap {
 		attachFileName := filepath.Base(attach)
 		articleName := filepath.Base(articlePath)
-		attachExpectedURL := hostRawURL + "/" + articleName + "/attachments/" + attachFileName
+		attachExpectedURL := hostRawURL + "/" + articleName + "/" + attachmentDir + "/" + attachFileName
 		if ji.Attachments[0].URL != attachExpectedURL && ji.Attachments[1].URL != attachExpectedURL {
 			t.Errorf("Missing URL: '%s'", attachExpectedURL)
 		}
 	}
 
+	teardownArticlePath(t, articlePath)
+}
+
+const testOldDataTitle = "Test Title"
+const testOldDataTags = "tag1,testtag"
+
+var oldDataTests = []struct {
+	inputTitle  string
+	inputTags   string
+	outputTitle string
+	outputTags  string
+}{
+	{"", "", testOldDataTitle, testOldDataTags},
+	{"Here is a Title", "", "Here is a Title", testOldDataTags},
+	{"Here is a Title", "yo,yoyo", "Here is a Title", "yo,yoyo"},
+	{"", "yo,yoyo", testOldDataTitle, "yo,yoyo"},
+}
+
+func TestGetOldDataFileExistent(t *testing.T) {
+	var ji jsfItem
+	ji.ID = "Test ID"
+	ji.URL = "http://example.com"
+	ji.Title = testOldDataTitle
+	ji.ContentHTML = "<h1>Hello World!</h1>"
+	ji.DatePublished = time.Now().Format(time.RFC3339)
+	ji.DateModified = time.Now().Format(time.RFC3339)
+	ji.Tags = strings.Split(testOldDataTags, listSeperator)
+
+	articlePath := setupArticlePath(t)
+	err := writeItemFile(ji, articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) BEFORE RUNNING TEST", err.Error())
+	}
+
+	for _, testParams := range oldDataTests {
+		published, title, tagList, err := getOldData(articlePath, testParams.inputTitle, testParams.inputTags)
+		if err != nil {
+			t.Errorf("Error (%s) when all parameters valid", err.Error())
+		}
+		jiPublishedParsed, _ := time.Parse(time.RFC3339, ji.DatePublished)
+		if published != jiPublishedParsed {
+			t.Errorf("Unexpected publish time, expected '%v', actual '%v'", jiPublishedParsed, published)
+		}
+		if title != testParams.outputTitle {
+			t.Errorf("Unexpected title, expected '%s', actual '%s'", testParams.outputTitle, title)
+		}
+		if tagList != testParams.outputTags {
+			t.Errorf("Unexpected tags, expected '%s', actual '%s'", testParams.outputTags, tagList)
+		}
+	}
+	teardownArticlePath(t, articlePath)
+}
+
+func TestGetOldDataFileNonexistent(t *testing.T) {
+	expectedTitle := "Some title"
+	expectedTags := "tagmillion,testing123"
+	articlePath := setupArticlePath(t)
+
+	beforePublished := time.Now()
+	published, title, tagList, err := getOldData(articlePath, expectedTitle, expectedTags)
+	afterPublished := time.Now()
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid", err.Error())
+	}
+
+	if title != expectedTitle {
+		t.Errorf("Unexpected title, expected '%s', actual '%s'", expectedTitle, title)
+	}
+
+	if tagList != expectedTags {
+		t.Errorf("Unexpected tags, expected '%s', actual '%s'", expectedTags, tagList)
+	}
+
+	if published.Before(beforePublished) || published.After(afterPublished) {
+		t.Errorf("Wrong publish time: %v", published)
+	}
 	teardownArticlePath(t, articlePath)
 }
