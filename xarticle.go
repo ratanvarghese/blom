@@ -216,7 +216,7 @@ func filesFromAttachPathMap(attachPathMap map[string]bool) ([]string, []*os.File
 
 func writeItemFile(res jsfItem, articlePath string) error {
 	itemFilePath := filepath.Join(articlePath, itemFile)
-	f, err := os.Open(itemFilePath)
+	f, err := os.Create(itemFilePath)
 	if err != nil {
 		return err
 	}

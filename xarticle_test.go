@@ -415,3 +415,113 @@ func TestGetPreviousItemExistent(t *testing.T) {
 
 	teardownArticlePath(t, articlePath)
 }
+
+func TestFilesFromAttachPathMap(t *testing.T) {
+	articlePath := setupArticlePath(t)
+	jpegFile1 := filepath.Join(articlePath, "file1.jpeg")
+	jpegFile2 := filepath.Join(articlePath, "file2.jpeg")
+	err := ioutil.WriteFile(jpegFile1, jpegBytes, 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	err = ioutil.WriteFile(jpegFile2, jpegBytes, 0664)
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+
+	attachPathMap := make(map[string]bool)
+	attachPathMap[jpegFile1] = true
+	attachPathMap[jpegFile2] = true
+	expectedLen := len(attachPathMap)
+
+	attachPathList, attachFileList, attachReaderList, err := filesFromAttachPathMap(attachPathMap)
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid")
+	}
+
+	attachPathListLen := len(attachPathList)
+	if attachPathListLen != expectedLen {
+		t.Errorf("Wrong attachPathList length, expected %v, actual %v", expectedLen, attachPathListLen)
+	}
+	for path := range attachPathMap {
+		if attachPathList[0] != path && attachPathList[1] != path {
+			t.Errorf("Missing path '%v' in attachPathList", path)
+		}
+	}
+	for i, path := range attachPathList {
+		if !attachPathMap[path] {
+			t.Errorf("Unexpected path '%v' at index %v in attachPathList", path, i)
+		}
+	}
+
+	attachFileListLen := len(attachFileList)
+	if attachFileListLen != expectedLen {
+		t.Errorf("Wrong attachFileList length, expected %v, actual %v", expectedLen, attachFileListLen)
+	}
+	for path := range attachPathMap {
+		if attachFileList[0].Name() != path && attachFileList[1].Name() != path {
+			t.Errorf("Missing path '%v' in attachPathList", path)
+		}
+	}
+	for i, file := range attachFileList {
+		if !attachPathMap[file.Name()] {
+			t.Errorf("Unexpected path '%v' at index %v in attachFileList", file.Name(), i)
+		}
+	}
+
+	attachReaderListLen := len(attachReaderList)
+	if attachReaderListLen != expectedLen {
+		t.Errorf("Wrong attachReaderList length, expected %v, actual %v", expectedLen, attachReaderListLen)
+	}
+
+	teardownArticlePath(t, articlePath)
+}
+
+func TestWriteItemFile(t *testing.T) {
+	var ji jsfItem
+	ji.ID = "Test ID"
+	ji.URL = "http://example.com"
+	ji.Title = "Test Title"
+	ji.ContentHTML = "<h1>Hello World!</h1>"
+	ji.DatePublished = time.Now().Format(time.RFC3339)
+	ji.DateModified = time.Now().Format(time.RFC3339)
+	ji.Tags = []string{"tag1", "testtag"}
+
+	articlePath := setupArticlePath(t)
+	err := writeItemFile(ji, articlePath)
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid.", err.Error())
+	}
+
+	itemFilePath := filepath.Join(articlePath, itemFile)
+	itemFileContent, err := ioutil.ReadFile(itemFilePath)
+	if err != nil {
+		t.Errorf("Error (%s) when reading item file", err.Error())
+	}
+
+	var res jsfItem
+	json.Unmarshal(itemFileContent, &res)
+	if res.ID != ji.ID {
+		t.Errorf("Wrong ID, expected '%s', actual '%s'", ji.ID, res.ID)
+	}
+	if res.URL != ji.URL {
+		t.Errorf("Wrong URL, expected '%s', actual '%s'", ji.URL, res.URL)
+	}
+	if res.Title != ji.Title {
+		t.Errorf("Wrong Title, expected '%s', actual '%s'", ji.Title, res.Title)
+	}
+	if res.ContentHTML != ji.ContentHTML {
+		t.Errorf("Wrong ContentHTML, expected '%s', actual '%s'", ji.ContentHTML, res.ContentHTML)
+	}
+	if res.DatePublished != ji.DatePublished {
+		t.Errorf("Wrong DatePublished, expected '%s', actual '%s'", ji.DatePublished, res.DatePublished)
+	}
+	if res.DateModified != ji.DateModified {
+		t.Errorf("Wrong DateModified, expected '%s', actual '%s'", ji.DateModified, res.DateModified)
+	}
+	if res.Tags[0] != ji.Tags[0] || res.Tags[1] != ji.Tags[1] {
+		t.Errorf("Wrong tags, expected '%v', actual '%v'", ji.Tags, res.Tags)
+	}
+
+	teardownArticlePath(t, articlePath)
+}
