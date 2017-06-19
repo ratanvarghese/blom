@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ratanvarghese/tqtime"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"os"
@@ -615,5 +616,38 @@ func TestGetOldDataFileNonexistent(t *testing.T) {
 	if published.Before(beforePublished) || published.After(afterPublished) {
 		t.Errorf("Wrong publish time: %v", published)
 	}
+	teardownArticlePath(t, articlePath)
+}
+
+func TestGetFinalWebpage(t *testing.T) {
+	dateStr := "<b>Fake Date</b>"
+	todayStr := "<em>Fake Today</em>"
+	contentStr := "<h1>Test content</h1>"
+	var articleE articleExport
+	articleE.Title = "Test title"
+	articleE.Date = template.HTML(dateStr)
+	articleE.Today = template.HTML(todayStr)
+	articleE.ContentHTML = template.HTML(contentStr)
+
+	templateStr := "{{.Title}}\n{{.Date}}\n{{.Today}}\n{{.ContentHTML}}"
+	tmpl := template.New("Whatever")
+	tmpl.Parse(templateStr)
+
+	articlePath := setupArticlePath(t)
+	articleE.writeFinalWebpage(tmpl, articlePath)
+	outputFilename := filepath.Join(articlePath, finalWebpageFile)
+	outputBytes, err := ioutil.ReadFile(outputFilename)
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid", err.Error())
+	}
+	outputList := strings.Split(string(outputBytes), "\n")
+	expectedList := []string{articleE.Title, dateStr, todayStr, contentStr}
+	for i, outputStr := range outputList {
+		expectedStr := expectedList[i]
+		if outputStr != expectedStr {
+			t.Errorf("Unexpected value at index %v, expected '%s', actual '%s'", i, expectedStr, outputStr)
+		}
+	}
+
 	teardownArticlePath(t, articlePath)
 }
