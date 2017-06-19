@@ -21,7 +21,7 @@ func TestSortByPublished(t *testing.T) {
 
 	inOrder := []jsfItem{ji4, ji3, ji2, ji1, ji5}
 	scrambled := []jsfItem{ji3, ji1, ji4, ji5, ji2}
-	sort.Sort(byDatePublished(scrambled))
+	sort.Sort(byPublishedDescend(scrambled))
 
 	for i, expectedItem := range inOrder {
 		actualItem := scrambled[i]

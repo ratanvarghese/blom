@@ -298,7 +298,7 @@ func legacyFeeds(itemList []jsfItem) {
 
 func doUpdate() {
 	jfItems := makeItemList()
-	sort.Sort(byDatePublished(jfItems))
+	sort.Sort(byPublishedDescend(jfItems))
 
 	if len(jfItems) > 0 {
 		makeHomepage(jfItems[0])
