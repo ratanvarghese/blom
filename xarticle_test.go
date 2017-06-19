@@ -651,3 +651,28 @@ func TestGetFinalWebpage(t *testing.T) {
 
 	teardownArticlePath(t, articlePath)
 }
+
+func TestProcessArticleContentNoAttachments(t *testing.T) {
+	templateStr := "{{.Title}}\n{{.Date}}\n{{.Today}}\n{{.ContentHTML}}"
+	tmpl := template.New("Whatever")
+	tmpl.Parse(templateStr)
+
+	articlePath := setupArticlePath(t)
+	contentStr := "<h1>Test content</h1>"
+	contentPath := filepath.Join(articlePath, contentFileHTML)
+	err := ioutil.WriteFile(contentPath, []byte(contentStr), 0664)
+	if err != nil {
+		t.Errorf("Error (%s) BEFORE STARTING TEST.", err.Error())
+	}
+
+	ji, err := processArticle(tmpl, articlePath, "Ignore Me!", "ignore,me")
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid", err.Error())
+	}
+
+	if ji.ContentHTML != contentStr {
+		t.Errorf("Unexpected content, expected:\n%s\n\nactual:\n%s", contentStr, ji.ContentHTML)
+	}
+
+	teardownArticlePath(t, articlePath)
+}

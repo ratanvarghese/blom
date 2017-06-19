@@ -41,6 +41,7 @@ type articleExport struct {
 	ContentHTML template.HTML
 }
 
+const xarticleMode = "xarticle"
 const hostRawURL = "http://ratan.blog"
 const attachmentDir = "attachments"
 const listSeperator = ","
@@ -48,6 +49,7 @@ const contentFileMD = "content.md"
 const contentFileHTML = "content.html"
 const itemFile = "item.json"
 const finalWebpageFile = "index.html"
+const defaultTemplate = "../../template.html"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
@@ -301,10 +303,14 @@ func processArticle(tmpl *template.Template, articleRelativePath, title, tagList
 		return res, err
 	}
 	res.init(published, modified, title, articlePath, tagList)
-	err = res.initAttachments(articlePath)
-	if err != nil {
-		return res, err
+
+	if _, err := os.Stat(filepath.Join(articlePath, attachmentDir)); err == nil {
+		err = res.initAttachments(articlePath)
+		if err != nil {
+			return res, err
+		}
 	}
+	res.ContentHTML = string(content)
 	err = writeItemFile(res, articlePath)
 	return res, err
 }

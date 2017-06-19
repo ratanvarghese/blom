@@ -24,8 +24,6 @@ const contentFile = "content.html"
 const contentMarkdown = "content.md"
 const outputWebpage = "index.html"
 
-const defaultTemplate = "../../template.html"
-
 type articleArgs struct {
 	attach   *string
 	title    *string
