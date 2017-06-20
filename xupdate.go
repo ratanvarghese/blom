@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-type jsfItemErr struct {
-	item jsfItem
-	err  error
-}
-
 type byPublishedDescend []jsfItem
 
 func (b byPublishedDescend) Len() int {
@@ -51,18 +46,10 @@ func buildItemList(tmpl *template.Template, blogPath string) ([]jsfItem, error) 
 		return nil, err
 	}
 	itemList := make([]jsfItem, len(articlePaths))
-	ch := make(chan jsfItemErr)
-	for _, articlePath := range articlePaths {
-		go func() {
-			item, itemErr := processArticle(tmpl, articlePath, "", "")
-			ch <- jsfItemErr{item, itemErr}
-		}()
-	}
-	for i := range itemList {
-		itemErr := <-ch
-		itemList[i] = itemErr.item
-		if itemErr.err != nil {
-			return itemList, itemErr.err
+	for i, articlePath := range articlePaths {
+		itemList[i], err = processArticle(tmpl, articlePath, "", "")
+		if err != nil {
+			return itemList, err
 		}
 	}
 	return itemList, nil
