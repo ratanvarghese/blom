@@ -81,8 +81,7 @@ func setupArticle(t *testing.T, articlePath string, itemFileContent, articleCont
 func TestFindArticlePaths(t *testing.T) {
 	numDirs := 3
 	numItems := 2
-	fileContent := "Fake!"
-	blogPath, subdirPaths := setupBlog(t, []byte(fileContent), []byte(fileContent), numDirs, numItems)
+	blogPath, subdirPaths := setupBlog(t, []byte("Fake!"), []byte("Fake!"), numDirs, numItems)
 	expectedArticlePaths := subdirPaths[:numItems]
 	articlePaths, err := findArticlePaths(blogPath)
 	if err != nil {
