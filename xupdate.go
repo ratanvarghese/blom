@@ -1,11 +1,17 @@
 package main
 
 import (
+	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 )
+
+type jsfItemErr struct {
+	item jsfItem
+	err  error
+}
 
 type byPublishedDescend []jsfItem
 
@@ -37,4 +43,27 @@ func findArticlePaths(blogPath string) ([]string, error) {
 		}
 	}
 	return itemPaths, nil
+}
+
+func buildItemList(tmpl *template.Template, blogPath string) ([]jsfItem, error) {
+	articlePaths, err := findArticlePaths(blogPath)
+	if err != nil {
+		return nil, err
+	}
+	itemList := make([]jsfItem, len(articlePaths))
+	ch := make(chan jsfItemErr)
+	for _, articlePath := range articlePaths {
+		go func() {
+			item, itemErr := processArticle(tmpl, articlePath, "", "")
+			ch <- jsfItemErr{item, itemErr}
+		}()
+	}
+	for i := range itemList {
+		itemErr := <-ch
+		itemList[i] = itemErr.item
+		if itemErr.err != nil {
+			return itemList, itemErr.err
+		}
+	}
+	return itemList, nil
 }
