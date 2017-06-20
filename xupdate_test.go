@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io/ioutil"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
@@ -31,4 +33,57 @@ func TestSortByPublished(t *testing.T) {
 			t.Errorf("Unexpected value at index %v, expected '%s', actual '%s'", i, expected, actual)
 		}
 	}
+}
+
+func setupBlog(t *testing.T, itemFileContent, articleContent []byte, numDirs, numItems int) (string, []string) {
+	blogPath, err := ioutil.TempDir(".", "testblom")
+	if err != nil {
+		t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+	}
+	subdirPaths := make([]string, numDirs)
+	for i, _ := range subdirPaths {
+		subdirPath, err := ioutil.TempDir(blogPath, "testblom")
+		if err != nil {
+			t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+		}
+		subdirPaths[i] = subdirPath
+		contentPath := filepath.Join(subdirPath, contentFileMD)
+		err = ioutil.WriteFile(contentPath, articleContent, 0664)
+		if err != nil {
+			t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+		}
+		if i < numItems {
+			itemPath := filepath.Join(subdirPath, itemFile)
+			err = ioutil.WriteFile(itemPath, itemFileContent, 0664)
+			if err != nil {
+				t.Errorf("Error (%s) PRIOR TO RUNNING TEST.", err.Error())
+			}
+		}
+	}
+	return blogPath, subdirPaths
+}
+
+func TestFindArticlePaths(t *testing.T) {
+	numDirs := 3
+	numItems := 2
+	fileContent := "Fake!"
+	blogPath, subdirPaths := setupBlog(t, []byte(fileContent), []byte(fileContent), numDirs, numItems)
+
+	expectedArticlePaths := subdirPaths[:numItems]
+	articlePaths, err := findArticlePaths(blogPath)
+	if err != nil {
+		t.Errorf("Error (%s) when all inputs valid.", err.Error())
+	}
+
+	sort.Strings(expectedArticlePaths)
+	sort.Strings(articlePaths)
+
+	for i, actualPath := range articlePaths {
+		expectedPath := expectedArticlePaths[i]
+		if actualPath != expectedPath {
+			t.Errorf("Unexpected path, expected '%s', actual '%s'", expectedPath, actualPath)
+		}
+	}
+
+	teardownArticlePath(t, blogPath)
 }
