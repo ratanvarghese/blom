@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+type jsfItemErr struct {
+	item jsfItem
+	err  error
+}
+
 type byPublishedDescend []jsfItem
 
 func (b byPublishedDescend) Len() int {
@@ -40,17 +45,27 @@ func findArticlePaths(blogPath string) ([]string, error) {
 	return itemPaths, nil
 }
 
+func channeledProcessArticle(tmpl *template.Template, articlePath string, ch chan<- jsfItemErr) {
+	item, err := processArticle(tmpl, articlePath, "", "")
+	ch <- jsfItemErr{item, err}
+}
+
 func buildItemList(tmpl *template.Template, blogPath string) ([]jsfItem, error) {
 	articlePaths, err := findArticlePaths(blogPath)
 	if err != nil {
 		return nil, err
 	}
 	itemList := make([]jsfItem, len(articlePaths))
-	for i, articlePath := range articlePaths {
-		itemList[i], err = processArticle(tmpl, articlePath, "", "")
-		if err != nil {
-			return itemList, err
+	ch := make(chan jsfItemErr)
+	for _, articlePath := range articlePaths {
+		go channeledProcessArticle(tmpl, articlePath, ch)
+	}
+	for i := range itemList {
+		res := <-ch
+		if res.err != nil {
+			return nil, res.err
 		}
+		itemList[i] = res.item
 	}
 	return itemList, nil
 }
