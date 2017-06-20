@@ -68,22 +68,24 @@ func TestFindArticlePaths(t *testing.T) {
 	numItems := 2
 	fileContent := "Fake!"
 	blogPath, subdirPaths := setupBlog(t, []byte(fileContent), []byte(fileContent), numDirs, numItems)
-
 	expectedArticlePaths := subdirPaths[:numItems]
 	articlePaths, err := findArticlePaths(blogPath)
 	if err != nil {
 		t.Errorf("Error (%s) when all inputs valid.", err.Error())
 	}
+	expectedArticleCount := len(expectedArticlePaths)
+	actualArticleCount := len(articlePaths)
+	if actualArticleCount != expectedArticleCount {
+		t.Errorf("Wrong number of article paths, expected %v, actual %v", expectedArticleCount, actualArticleCount)
+	}
 
 	sort.Strings(expectedArticlePaths)
 	sort.Strings(articlePaths)
-
 	for i, actualPath := range articlePaths {
 		expectedPath := expectedArticlePaths[i]
 		if actualPath != expectedPath {
-			t.Errorf("Unexpected path, expected '%s', actual '%s'", expectedPath, actualPath)
+			t.Errorf("Unexpected path at index %v, expected '%s', actual '%s'", i, expectedPath, actualPath)
 		}
 	}
-
 	teardownArticlePath(t, blogPath)
 }
