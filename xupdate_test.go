@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 )
@@ -134,7 +135,7 @@ func TestBuildItemList(t *testing.T) {
 	}
 	sort.Sort(byPublishedDescend(itemList))
 	expectedContentList := []string{"<h2>This is the content 0</h2>\n", "<h2>This is the content 1</h2>\n"}
-	//expectedItemList := []jsfItem{item0, item1}
+	expectedItemList := []jsfItem{item0, item1}
 
 	if len(itemList) != numItems {
 		t.Errorf("Wrong number of items, expected %v, actual %v", len(itemList), numItems)
@@ -146,6 +147,21 @@ func TestBuildItemList(t *testing.T) {
 		if actualContent != expectedContent {
 			t.Errorf("Wrong content at index %v, expected '%s', actual '%s'", i, expectedContent, actualContent)
 		}
+		actualPub := actualItem.DatePublished
+		expectedPub := expectedItemList[i].DatePublished
+		if actualPub != expectedPub {
+			t.Errorf("Wrong published date at index $v, expected '%s', actual '%s'", i, expectedPub, actualPub)
+		}
+		finalPagePath := filepath.Join(articlePaths[i], finalWebpageFile)
+		finalPageContent, err := ioutil.ReadFile(finalPagePath)
+		if err != nil {
+			t.Errorf("Error (%s) finding final page %v", err.Error(), i)
+		}
+		finalPageLines := strings.Split(string(finalPageContent), "\n")
+		if finalPageLines[0] != itemList[i].Title {
+			t.Errorf("Wrong title in final file %v, expected '%s', actual '%s'", i, itemList[i].Title, finalPageLines[0])
+		}
+
 	}
 	teardownArticlePath(t, blogPath)
 }
