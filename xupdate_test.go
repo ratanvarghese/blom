@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -180,5 +181,60 @@ func TestJsfMainInit(t *testing.T) {
 	}
 	if jf.HomePageURL != hostRawURL {
 		t.Errorf("Wrong home URL, expected '%s', actual '%s'", hostRawURL, jf.HomePageURL)
+	}
+}
+
+var pageSplitTestParams = []struct {
+	itemCount int
+	pageLen   int
+}{
+	{1, 3},
+	{2, 3},
+	{3, 3},
+	{5, 3},
+	{6, 3},
+	{7, 3},
+	{4, 15},
+	{15, 15},
+	{16, 15},
+	{60, 15},
+	{61, 15},
+}
+
+func pageSplitTest(t *testing.T, itemCount int, pageLen int) {
+	itemList := make([]jsfItem, itemCount)
+
+	for i := range itemList {
+		itemList[i].ID = strconv.Itoa(i)
+	}
+	feedList, err := pageSplit(itemList, pageLen)
+
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid.", err.Error())
+		t.Errorf("(itemCount %v, pageLen %v)", itemCount, pageLen)
+	}
+
+	expectedFeedCount := (itemCount / pageLen) + 1
+	feedCount := len(feedList)
+	if feedCount != expectedFeedCount {
+		t.Errorf("Wrong feed count, expected %v, actual %v", expectedFeedCount, feedCount)
+		t.Errorf("(itemCount %v, pageLen %v)", itemCount, pageLen)
+	}
+
+	for fi, feed := range feedList {
+		for i, item := range feed.Items {
+			expectedID := strconv.Itoa(fi*pageLen + i)
+			ID := item.ID
+			if ID != expectedID {
+				t.Errorf("Wrong ID in feed %v, index %v, expected '%s', actual '%s'", fi, i, expectedID, ID)
+				t.Errorf("(itemCount %v, pageLen %v)", itemCount, pageLen)
+			}
+		}
+	}
+}
+
+func TestPageSplitAll(t *testing.T) {
+	for _, s := range pageSplitTestParams {
+		pageSplitTest(t, s.itemCount, s.pageLen)
 	}
 }

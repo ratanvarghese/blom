@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"html/template"
 	"io/ioutil"
 	"net/url"
@@ -13,7 +14,6 @@ const jsfVersion = "https://jsonfeed.org/version/1"
 const jsfPath = "feeds/json"
 const atomPath = "feeds/atom"
 const rssPath = "feeds/rss"
-const pageLen = 15
 
 type jsfMain struct {
 	Version     string    `json:"version"`
@@ -103,4 +103,8 @@ func (jf *jsfMain) init() error {
 
 	jf.FeedURL = hostURL.ResolveReference(URLRelativeToHost).String()
 	return nil
+}
+
+func pageSplit(itemList []jsfItem, pageLen int) ([]jsfMain, error) {
+	return nil, errors.New("Not implemented yet")
 }
