@@ -214,7 +214,7 @@ func pageSplitTest(t *testing.T, itemCount int, pageLen int) {
 		t.Errorf("(itemCount %v, pageLen %v)", itemCount, pageLen)
 	}
 
-	expectedFeedCount := ((itemCount - 1)/ pageLen) + 1
+	expectedFeedCount := ((itemCount - 1) / pageLen) + 1
 	feedCount := len(feedList)
 	if feedCount != expectedFeedCount {
 		t.Errorf("Wrong feed count, expected %v, actual %v", expectedFeedCount, feedCount)
@@ -228,6 +228,12 @@ func pageSplitTest(t *testing.T, itemCount int, pageLen int) {
 			if ID != expectedID {
 				t.Errorf("Wrong ID in feed %v, index %v, expected '%s', actual '%s'", fi, i, expectedID, ID)
 				t.Errorf("(itemCount %v, pageLen %v)", itemCount, pageLen)
+			}
+		}
+		if feedCount > 1 && fi < (feedCount-1) {
+			expectedNext := feed.FeedURL + strconv.Itoa(fi+1)
+			if feed.NextURL != expectedNext {
+				t.Errorf("Wrong NextURL in feed %v, expected '%s', actual '%s'", fi, expectedNext, feed.NextURL)
 			}
 		}
 	}
