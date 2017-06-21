@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"html/template"
 	"io/ioutil"
 	"net/url"
@@ -144,6 +145,7 @@ func writeJsf(feedList []jsfMain, blogPath string) error {
 		if err != nil {
 			return err
 		}
+		f.Close()
 	}
 	return nil
 }

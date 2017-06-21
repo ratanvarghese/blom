@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -245,4 +246,51 @@ func TestPageSplitAll(t *testing.T) {
 	for _, s := range pageSplitTestParams {
 		pageSplitTest(t, s.itemCount, s.pageLen)
 	}
+}
+
+func TestWriteJsf(t *testing.T) {
+	feedCount := 3
+	feedList := make([]jsfMain, feedCount)
+	for i := range feedList {
+		feedList[i].Title = strconv.Itoa(i)
+	}
+
+	blogPath, _ := setupBlog(t, []byte("fake"), []byte("fake"), 0, 0)
+
+	err := os.Mkdir(filepath.Join(blogPath, "feeds"), 0777)
+	if err != nil {
+		t.Errorf("Error (%s) BEFORE RUNNING TEST", err.Error())
+	}
+	err = writeJsf(feedList, blogPath)
+	if err != nil {
+		t.Errorf("Error (%s) when all parameters valid.", err.Error())
+	}
+
+	feedFileList := make([]string, feedCount)
+	for i := range feedFileList {
+		if i > 0 {
+			feedFileList[i] = filepath.Join(blogPath, jsfPath+strconv.Itoa(i))
+		} else {
+			feedFileList[i] = filepath.Join(blogPath, jsfPath)
+		}
+	}
+
+	for i, feedFileName := range feedFileList {
+		if _, err = os.Stat(feedFileName); err != nil {
+			t.Errorf("Error (%s) seeking file '%s'", err.Error(), feedFileName)
+		}
+		feedBytes, err := ioutil.ReadFile(feedFileName)
+		if err != nil {
+			t.Errorf("Error (%s) accessing file '%s'", err.Error(), feedFileName)
+		}
+		var curFeed jsfMain
+		err = json.Unmarshal(feedBytes, &curFeed)
+		if err != nil {
+			t.Errorf("Error (%s) decoding file '%s'", err.Error(), feedFileName)
+		}
+		if curFeed.Title != feedList[i].Title {
+			t.Errorf("Wrong title at index %v, expected '%s', actual '%s'", i, feedList[i].Title, curFeed.Title)
+		}
+	}
+	teardownArticlePath(t, blogPath)
 }
