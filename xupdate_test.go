@@ -165,3 +165,20 @@ func TestBuildItemList(t *testing.T) {
 	}
 	teardownArticlePath(t, blogPath)
 }
+
+func TestJsfMainInit(t *testing.T) {
+	var jf jsfMain
+	err := jf.init()
+	if err != nil {
+		t.Errorf("Error (%s) with default settings.", err.Error())
+	}
+	if jf.Version != jsfVersion {
+		t.Errorf("Wrong version, expected '%s', actual '%s'", jsfVersion, jf.Version)
+	}
+	if jf.Title != hostRawURL {
+		t.Errorf("Wrong title, expected '%s', actual '%s'", hostRawURL, jf.Title)
+	}
+	if jf.HomePageURL != hostRawURL {
+		t.Errorf("Wrong home URL, expected '%s', actual '%s'", hostRawURL, jf.HomePageURL)
+	}
+}

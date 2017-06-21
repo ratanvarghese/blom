@@ -17,19 +17,6 @@ import (
 const updateMode = "update"
 const defaultVersion = "https://jsonfeed.org/version/1"
 const defaultHomePage = "ratan.blog"
-const jfPath = "feeds/json"
-const atomPath = "feeds/atom"
-const rssPath = "feeds/rss"
-const pageLen = 15
-
-type jsfMain struct {
-	Version     string    `json:"version"`
-	Title       string    `json:"title"`
-	HomePageURL string    `json:"home_page_url"`
-	FeedURL     string    `json:"feed_url"`
-	NextURL     string    `json:"next_url,omitempty"`
-	Items       []jsfItem `json:"items"`
-}
 
 func noFrillsArticle() articleArgs {
 	var args articleArgs
@@ -81,7 +68,7 @@ func defaultJsfMain() jsfMain {
 	jf.Version = defaultVersion
 	jf.HomePageURL = defaultHomePage
 	jf.Title = defaultHomePage
-	jf.FeedURL = path.Join(defaultHomePage, jfPath)
+	jf.FeedURL = path.Join(defaultHomePage, jsfPath)
 	return jf
 }
 
@@ -97,7 +84,7 @@ func paginatedPrint(itemList []jsfItem) {
 			pageEnd = listLen
 		}
 		jf.Items = itemList[i:pageEnd]
-		curPath := jfPath
+		curPath := jsfPath
 		if pageNum > 0 {
 			curPath = fmt.Sprintf("%v%v", curPath, pageNum)
 		}

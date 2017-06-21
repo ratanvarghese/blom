@@ -3,10 +3,26 @@ package main
 import (
 	"html/template"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"time"
 )
+
+const jsfVersion = "https://jsonfeed.org/version/1"
+const jsfPath = "feeds/json"
+const atomPath = "feeds/atom"
+const rssPath = "feeds/rss"
+const pageLen = 15
+
+type jsfMain struct {
+	Version     string    `json:"version"`
+	Title       string    `json:"title"`
+	HomePageURL string    `json:"home_page_url"`
+	FeedURL     string    `json:"feed_url"`
+	NextURL     string    `json:"next_url,omitempty"`
+	Items       []jsfItem `json:"items"`
+}
 
 type jsfItemErr struct {
 	item jsfItem
@@ -68,4 +84,23 @@ func buildItemList(tmpl *template.Template, blogPath string) ([]jsfItem, error) 
 		itemList[i] = res.item
 	}
 	return itemList, nil
+}
+
+func (jf *jsfMain) init() error {
+	jf.Version = jsfVersion
+	jf.Title = hostRawURL
+	jf.HomePageURL = hostRawURL
+
+	hostURL, err := url.Parse(hostRawURL)
+	if err != nil {
+		return err
+	}
+
+	URLRelativeToHost, err := url.Parse(jsfPath)
+	if err != nil {
+		return err
+	}
+
+	jf.FeedURL = hostURL.ResolveReference(URLRelativeToHost).String()
+	return nil
 }
