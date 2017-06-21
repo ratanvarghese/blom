@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -148,4 +149,13 @@ func writeJsf(feedList []jsfMain, blogPath string) error {
 		f.Close()
 	}
 	return nil
+}
+
+func processHomepage(tmpl *template.Template, wg *sync.WaitGroup, latest jsfItem, blogPath string) error {
+	var exportArgs articleExport
+	published, _ := time.Parse(time.RFC3339, latest.DatePublished)
+	exportArgs.init(published, latest.Title, []byte(latest.ContentHTML))
+	err := exportArgs.writeFinalWebpage(tmpl, blogPath)
+	wg.Done()
+	return err
 }
