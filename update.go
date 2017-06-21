@@ -112,45 +112,6 @@ func makeHomepage(latestItem jsfItem) {
 	runTemplate(latestItem, args, newContent)
 }
 
-func archiveLines(itemList []jsfItem) []string {
-	var gt1 time.Time
-	outputLines := make([]string, 0)
-	for i, ji := range itemList {
-		g1Year := gt1.Year()
-		g1YearDay := gt1.YearDay()
-		tq1Year := tqtime.Year(g1Year, g1YearDay)
-		tq1Mon := tqtime.Month(g1Year, g1YearDay)
-		tq1Day := tqtime.Day(g1Year, g1YearDay)
-
-		gt2, _ := time.Parse(time.RFC3339, ji.DatePublished)
-		g2Year := gt2.Year()
-		g2YearDay := gt2.YearDay()
-		tq2Year := tqtime.Year(g2Year, g2YearDay)
-		tq2Mon := tqtime.Month(g2Year, g2YearDay)
-		tq2Day := tqtime.Day(g2Year, g2YearDay)
-
-		isSpecialDay := (tq2Mon == tqtime.SpecialDay)
-
-		if (tq1Year != tq2Year) || (tq1Mon != tq2Mon) || (isSpecialDay && (tq1Day != tq2Day)) {
-			if !gt1.IsZero() {
-				outputLines = append(outputLines, "<ul>")
-			}
-			if isSpecialDay {
-				outputLines = append(outputLines, fmt.Sprintf("<h3>%v, %v AT</h3>", tqtime.DayName(tq2Day), tq2Year))
-			} else {
-				outputLines = append(outputLines, fmt.Sprintf("<h3>%v, %v AT</h3>", tq2Mon.String(), tq2Year))
-			}
-			outputLines = append(outputLines, "<ul>")
-		}
-		outputLines = append(outputLines, fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", ji.URL, ji.Title))
-		gt1 = gt2
-		if i == (len(itemList) - 1) {
-			outputLines = append(outputLines, "</ul>")
-		}
-	}
-	return outputLines
-}
-
 func printArchive(itemList []jsfItem) {
 	lineList := archiveLines(itemList)
 	if err := os.Chdir("archive"); err != nil {

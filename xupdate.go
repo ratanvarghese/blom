@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
 	"net/url"
@@ -158,4 +159,48 @@ func processHomepage(tmpl *template.Template, wg *sync.WaitGroup, latest jsfItem
 	err := exportArgs.writeFinalWebpage(tmpl, blogPath)
 	wg.Done()
 	return err
+}
+
+func archiveSeperator(gt1 time.Time, gt2 time.Time) (bool, string) {
+	g1Year := gt1.Year()
+	g1YearDay := gt1.YearDay()
+	tq1Year := tqtime.Year(g1Year, g1YearDay)
+	tq1Mon := tqtime.Month(g1Year, g1YearDay)
+	tq1Day := tqtime.Day(g1Year, g1YearDay)
+
+	g2Year := gt2.Year()
+	g2YearDay := gt2.YearDay()
+	tq2Year := tqtime.Year(g2Year, g2YearDay)
+	tq2Mon := tqtime.Month(g2Year, g2YearDay)
+	tq2Day := tqtime.Day(g2Year, g2YearDay)
+
+	isSpecialDay := (tq2Mon == tqtime.SpecialDay)
+
+	var seperatorText string
+	if isSpecialDay {
+		seperatorText = fmt.Sprintf("<h3>%v, %v AT</h3>", tqtime.DayName(tq2Day), tq2Year)
+	} else {
+		seperatorText = fmt.Sprintf("<h3>%v, %v AT</h3>", tq2Mon.String(), tq2Year)
+	}
+	needSeperation := (tq1Year != tq2Year) || (tq1Mon != tq2Mon) || (isSpecialDay && (tq1Day != tq2Day))
+	return needSeperation, seperatorText
+}
+
+func archiveLines(itemList []jsfItem) []string {
+	var t1 time.Time //intentionally starting at zero value
+	outputLines := make([]string, 0)
+	for i, ji := range itemList {
+		t2, _ := time.Parse(time.RFC3339, ji.DatePublished)
+		if sep, sepText := archiveSeperator(t1, t2); sep {
+			if i > 0 { //The start of a section is the end of the previous section, unless *no* previous section.
+				outputLines = append(outputLines, "</ul>")
+			}
+			outputLines = append(outputLines, sepText)
+			outputLines = append(outputLines, "<ul>")
+		}
+		outputLines = append(outputLines, fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", ji.URL, ji.Title))
+		t1 = t2
+	}
+	outputLines = append(outputLines, "</ul>")
+	return outputLines
 }
