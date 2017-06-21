@@ -17,6 +17,7 @@ import (
 const updateMode = "update"
 const defaultVersion = "https://jsonfeed.org/version/1"
 const defaultHomePage = "ratan.blog"
+const defaultPageLen = 15
 
 func noFrillsArticle() articleArgs {
 	var args articleArgs
@@ -75,9 +76,9 @@ func defaultJsfMain() jsfMain {
 func paginatedPrint(itemList []jsfItem) {
 	jf := defaultJsfMain()
 	listLen := len(itemList)
-	for i := 0; i < listLen; i += pageLen {
-		pageNum := i / pageLen
-		pageEnd := i + pageLen
+	for i := 0; i < listLen; i += defaultPageLen {
+		pageNum := i / defaultPageLen
+		pageEnd := i + defaultPageLen
 		if listLen >= pageEnd {
 			jf.NextURL = fmt.Sprintf("%v%v", jf.FeedURL, pageNum+1)
 		} else {
