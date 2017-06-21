@@ -235,6 +235,8 @@ func pageSplitTest(t *testing.T, itemCount int, pageLen int) {
 			if feed.NextURL != expectedNext {
 				t.Errorf("Wrong NextURL in feed %v, expected '%s', actual '%s'", fi, expectedNext, feed.NextURL)
 			}
+		} else if feedCount > 1 && fi == feedCount-1 && len(feed.NextURL) > 0 {
+			t.Errorf("NextURL in feed %v when not expected", fi)
 		}
 	}
 }

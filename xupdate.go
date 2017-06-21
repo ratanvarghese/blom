@@ -1,12 +1,12 @@
 package main
 
 import (
-	"errors"
 	"html/template"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -106,5 +106,23 @@ func (jf *jsfMain) init() error {
 }
 
 func pageSplit(itemList []jsfItem, pageLen int) ([]jsfMain, error) {
-	return nil, errors.New("Not implemented yet")
+	itemCount := len(itemList)
+	feedCount := ((itemCount - 1) / pageLen) + 1
+	res := make([]jsfMain, feedCount)
+	for i := range res {
+		err := res[i].init()
+		if err != nil {
+			return res, err
+		}
+		pageStart := i * pageLen
+		pageEnd := (i + 1) * pageLen
+		if pageEnd > itemCount {
+			pageEnd = itemCount
+		}
+		res[i].Items = itemList[pageStart:pageEnd]
+		if i < (feedCount - 1) {
+			res[i].NextURL = res[i].FeedURL + strconv.Itoa(i+1)
+		}
+	}
+	return res, nil
 }
