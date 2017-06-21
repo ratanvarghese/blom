@@ -214,7 +214,7 @@ func pageSplitTest(t *testing.T, itemCount int, pageLen int) {
 		t.Errorf("(itemCount %v, pageLen %v)", itemCount, pageLen)
 	}
 
-	expectedFeedCount := (itemCount / pageLen) + 1
+	expectedFeedCount := ((itemCount - 1)/ pageLen) + 1
 	feedCount := len(feedList)
 	if feedCount != expectedFeedCount {
 		t.Errorf("Wrong feed count, expected %v, actual %v", expectedFeedCount, feedCount)
