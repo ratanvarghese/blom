@@ -126,3 +126,24 @@ func pageSplit(itemList []jsfItem, pageLen int) ([]jsfMain, error) {
 	}
 	return res, nil
 }
+
+func writeJsf(feedList []jsfMain, blogPath string) error {
+	for i, feed := range feedList {
+		curPath := filepath.Join(blogPath, jsfPath)
+		if i > 0 {
+			curPath += strconv.Itoa(i)
+		}
+		f, err := os.Create(curPath)
+		if err != nil {
+			return err
+		}
+		enc := json.NewEncoder(f)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "\t")
+		err = enc.Encode(feed)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
