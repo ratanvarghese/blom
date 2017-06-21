@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
@@ -187,6 +188,9 @@ func archiveSeperator(gt1 time.Time, gt2 time.Time) (bool, string) {
 }
 
 func archiveLines(itemList []jsfItem) []string {
+	if len(itemList) < 1 {
+		return nil
+	}
 	var t1 time.Time //intentionally starting at zero value
 	outputLines := make([]string, 0)
 	for i, ji := range itemList {
