@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -212,4 +213,17 @@ func archiveLines(itemList []jsfItem) []string {
 	}
 	outputLines = append(outputLines, "</ul>")
 	return outputLines
+}
+
+func processArchive(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string) error {
+	var exportArgs articleExport
+	var published time.Time
+
+	contentLines := archiveLines(itemList)
+	exportArgs.init(published, "Archive", []byte(strings.Join(contentLines, "\n")))
+	exportArgs.Date = template.HTML("")
+	archivePath := filepath.Join(blogPath, "archive")
+	err := exportArgs.writeFinalWebpage(tmpl, archivePath)
+	wg.Done()
+	return err
 }
