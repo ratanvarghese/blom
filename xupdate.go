@@ -178,10 +178,15 @@ func archiveSeperator(gt1 time.Time, gt2 time.Time) (bool, string) {
 	isSpecialDay := (tq2Mon == tqtime.SpecialDay)
 
 	var seperatorText string
-	if isSpecialDay {
-		seperatorText = fmt.Sprintf("<h3>%v, %v AT</h3>", tqtime.DayName(tq2Day), tq2Year)
+	if tq2Day == tqtime.AldrinDay || tq2Mon == tqtime.Hippocrates { //A feature of this calendar which is annoying for archives
+		seperatorText = fmt.Sprintf("<h3>Hippocrates & Aldrin Day, %d AT</h3>", tq2Year)
+		if (tq1Mon == tqtime.Hippocrates || tq1Day == tqtime.AldrinDay) && tq1Year == tq2Year {
+			return false, seperatorText
+		}
+	} else if isSpecialDay {
+		seperatorText = fmt.Sprintf("<h3>%s, %d AT</h3>", tqtime.DayName(tq2Day), tq2Year)
 	} else {
-		seperatorText = fmt.Sprintf("<h3>%v, %v AT</h3>", tq2Mon.String(), tq2Year)
+		seperatorText = fmt.Sprintf("<h3>%s, %d AT</h3>", tq2Mon.String(), tq2Year)
 	}
 	needSeperation := (tq1Year != tq2Year) || (tq1Mon != tq2Mon) || (isSpecialDay && (tq1Day != tq2Day))
 	return needSeperation, seperatorText
@@ -191,7 +196,7 @@ func archiveLines(itemList []jsfItem) []string {
 	if len(itemList) < 1 {
 		return nil
 	}
-	var t1 time.Time //intentionally starting at zero value
+	var t1 time.Time //intentionally starting at zero value, always a different year than first article.
 	outputLines := make([]string, 0)
 	for i, ji := range itemList {
 		t2, _ := time.Parse(time.RFC3339, ji.DatePublished)

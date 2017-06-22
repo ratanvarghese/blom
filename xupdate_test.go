@@ -294,3 +294,36 @@ func TestWriteJsf(t *testing.T) {
 	}
 	teardownArticlePath(t, blogPath)
 }
+
+var archiveSeperatorTests = []struct {
+	gt1     string
+	gt2     string
+	sep     bool
+	sepText string
+}{
+	{"0001-01-01", "1972-07-20", true, "<h3>Armstrong Day, 3 AT</h3>"},
+	{"1972-07-19", "1972-07-20", true, "<h3>Armstrong Day, 3 AT</h3>"},
+	{"0001-01-01", "1972-06-22", true, "<h3>Mendel, 3 AT</h3>"},
+	{"1972-06-21", "1972-06-22", true, "<h3>Mendel, 3 AT</h3>"},
+	{"1972-06-22", "1972-06-23", false, "<h3>Mendel, 3 AT</h3>"},
+	{"1972-01-04", "1972-01-05", true, "<h3>Galileo, 3 AT</h3>"},
+	{"1972-02-01", "1972-02-02", true, "<h3>Hippocrates & Aldrin Day, 3 AT</h3>"},
+	{"1972-02-28", "1972-02-29", false, "<h3>Hippocrates & Aldrin Day, 3 AT</h3>"},
+	{"1971-02-28", "1972-02-29", true, "<h3>Hippocrates & Aldrin Day, 3 AT</h3>"},
+	{"1972-02-29", "1972-03-01", false, "<h3>Hippocrates & Aldrin Day, 3 AT</h3>"},
+	{"1972-03-01", "1972-03-02", true, "<h3>Imhotep, 3 AT</h3>"},
+}
+
+func TestArchiveSeperator(t *testing.T) {
+	for _, s := range archiveSeperatorTests {
+		gt1, _ := time.Parse("2006-01-02", s.gt1)
+		gt2, _ := time.Parse("2006-01-02", s.gt2)
+		sep, sepText := archiveSeperator(gt1, gt2)
+		if sep != s.sep {
+			t.Errorf("Wrong seperation status on (%v,%v), expected %v, actual %v", s.gt1, s.gt2, s.sep, sep)
+		}
+		if sepText != s.sepText {
+			t.Errorf("Wrong seperation text on (%v,%v), expected %v, actual %v", s.gt1, s.gt2, s.sepText, sepText)
+		}
+	}
+}
