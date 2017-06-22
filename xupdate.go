@@ -272,7 +272,7 @@ func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem
 	return err
 }
 
-func (gi *feeds.Item) fromJsfItem(ji jsfItem) {
+func fromJsfItem(gi *feeds.Item, ji jsfItem) {
 	gi.Title = ji.Title
 	gi.Link = &feeds.Link{Href: ji.URL}
 	gi.Created, _ = time.Parse(time.RFC3339, ji.DatePublished)
@@ -290,7 +290,7 @@ func makeLegacyFeed(itemList []jsfItem) feeds.Feed {
 	gfItemList := make([]*feeds.Item, len(itemList))
 	for i, ji := range itemList {
 		gfItemList[i] = new(feeds.Item)
-		gfItemList[i].fromjsfItem(ji)
+		fromJsfItem(gfItemList[i], ji)
 	}
 	gf.Items = gfItemList
 	return gf
@@ -316,4 +316,31 @@ func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string)
 		return err
 	}
 	return ioutil.WriteFile(fullRssPath, []byte(rss), 0664)
+}
+
+func processBlog(mainTmpl *template.Template, homeTmpl *template.Template, blogRelativePath string) error {
+	blogPath, err := filepath.Abs(blogRelativePath)
+	if err != nil {
+		return err
+	}
+
+	itemList, err := buildItemList(mainTmpl, blogPath)
+	sort.Sort(byPublishedDescend(itemList))
+
+	var wg sync.WaitGroup
+	wg.Add(4)
+	if len(itemList) > 0 {
+		go processHomepage(homeTmpl, &wg, itemList[0], blogPath)
+	}
+	go processLegacyFeeds(&wg, itemList, blogPath)
+	go processTags(mainTmpl, &wg, itemList, blogPath)
+	go processArchive(mainTmpl, &wg, itemList, blogPath)
+
+	defer wg.Wait()
+
+	feedList, err := pageSplit(itemList, 15)
+	if err != nil {
+		return err
+	}
+	return writeJsf(feedList, blogPath)
 }
