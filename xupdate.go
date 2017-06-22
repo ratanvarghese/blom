@@ -257,3 +257,16 @@ func tagsPageLines(itemList []jsfItem) []string {
 	}
 	return outputLines
 }
+
+func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string) error {
+	var exportArgs articleExport
+	var published time.Time
+
+	contentLines := tagsPageLines(itemList)
+	exportArgs.init(published, "Tags", []byte(strings.Join(contentLines, "\n")))
+	exportArgs.Date = template.HTML("")
+	tagsPath := filepath.Join(blogPath, "tags")
+	err := exportArgs.writeFinalWebpage(tmpl, tagsPath)
+	wg.Done()
+	return err
+}
