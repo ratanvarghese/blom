@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/feeds"
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
@@ -269,4 +270,50 @@ func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem
 	err := exportArgs.writeFinalWebpage(tmpl, tagsPath)
 	wg.Done()
 	return err
+}
+
+func (gi *feeds.Item) fromJsfItem(ji jsfItem) {
+	gi.Title = ji.Title
+	gi.Link = &feeds.Link{Href: ji.URL}
+	gi.Created, _ = time.Parse(time.RFC3339, ji.DatePublished)
+	gi.Updated, _ = time.Parse(time.RFC3339, ji.DateModified)
+	gi.Id = ji.ID
+	gi.Description = ji.ContentHTML
+}
+
+func makeLegacyFeed(itemList []jsfItem) feeds.Feed {
+	var gf feeds.Feed
+	gf.Title = defaultHomePage
+	gf.Link = &feeds.Link{Href: siteURL}
+	gf.Created = time.Now()
+
+	gfItemList := make([]*feeds.Item, len(itemList))
+	for i, ji := range itemList {
+		gfItemList[i] = new(feeds.Item)
+		gfItemList[i].fromjsfItem(ji)
+	}
+	gf.Items = gfItemList
+	return gf
+}
+
+func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string) error {
+	defer wg.Done()
+	gf := makeLegacyFeed(itemList)
+	atom, err := gf.ToAtom()
+	if err != nil {
+		return err
+	}
+	rss, err := gf.ToRss()
+	if err != nil {
+		return err
+	}
+
+	fullAtomPath := filepath.Join(blogPath, atomPath)
+	fullRssPath := filepath.Join(blogPath, atomPath)
+
+	err = ioutil.WriteFile(fullAtomPath, []byte(atom), 0664)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(fullRssPath, []byte(rss), 0664)
 }
