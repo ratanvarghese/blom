@@ -379,3 +379,92 @@ func TestArchiveLinesNonempty(t *testing.T) {
 		}
 	}
 }
+
+func TestTagSort(t *testing.T) {
+	itemList := make([]jsfItem, 4)
+	itemList[0].Tags = []string{"tag3", "tag2"}
+	itemList[0].ID = strconv.Itoa(0)
+	itemList[1].Tags = []string{"tag3"}
+	itemList[1].ID = strconv.Itoa(1)
+	itemList[2].Tags = []string{"tag1"}
+	itemList[2].ID = strconv.Itoa(2)
+	itemList[3].ID = strconv.Itoa(3)
+	//last item deliberately has no tags
+
+	tagMap, tagList := tagSort(itemList)
+	expectedTagCount := 3
+	mapTagCount := len(tagMap)
+	if mapTagCount != expectedTagCount {
+		t.Errorf("Wrong tag count for map, expected %v, actual %v", expectedTagCount, mapTagCount)
+	}
+	listTagCount := len(tagList)
+	if listTagCount != expectedTagCount {
+		t.Errorf("Wrong tag count for list, expected %v, actual %v", expectedTagCount, listTagCount)
+	}
+
+	expectedTagList := []string{"tag1", "tag2", "tag3"}
+	expectedID1 := []string{"2"}
+	expectedID2 := []string{"0"}
+	expectedID3 := []string{"0", "1"}
+	expectedIDListList := [][]string{expectedID1, expectedID2, expectedID3}
+	for i, tag := range tagList {
+		expectedTag := expectedTagList[i]
+		if tag != expectedTag {
+			t.Errorf("Unexpected tag in list at index %v, expected '%s', actual '%s'", i, expectedTag, tag)
+		}
+		itemList := tagMap[tag]
+		IDList := expectedIDListList[i]
+		for j, item := range itemList {
+			ID := IDList[j]
+			if item.ID != ID {
+				t.Errorf("Unexpected id for tag %s, index %v, expected '%s', actual '%s'", tag, j, ID, item.ID)
+			}
+		}
+	}
+
+}
+
+func TestTagsPageLines(t *testing.T) {
+	itemList := make([]jsfItem, 4)
+	itemList[0].Tags = []string{"tag3", "tag2"}
+	itemList[0].URL = strconv.Itoa(0)
+	itemList[0].Title = "title0"
+	itemList[1].Tags = []string{"tag3"}
+	itemList[1].URL = strconv.Itoa(1)
+	itemList[1].Title = "title1"
+	itemList[2].Tags = []string{"tag1"}
+	itemList[2].URL = strconv.Itoa(2)
+	itemList[2].Title = "title2"
+	itemList[3].URL = strconv.Itoa(3)
+	itemList[3].Title = "title3"
+
+	lineList := tagsPageLines(itemList)
+	expectedLineList := []string{
+		"<h3>Tag1</h3>",
+		"<ul>",
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[2].URL, itemList[2].Title),
+		"</ul>",
+		"<h3>Tag2</h3>",
+		"<ul>",
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[0].URL, itemList[0].Title),
+		"</ul>",
+		"<h3>Tag3</h3>",
+		"<ul>",
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[0].URL, itemList[0].Title),
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[1].URL, itemList[1].Title),
+		"</ul>",
+	}
+
+	lineCount := len(lineList)
+	expectedLineCount := len(expectedLineList)
+	if lineCount != expectedLineCount {
+		t.Errorf("Wrong line count, expected %v, actual %v", expectedLineCount, lineCount)
+	}
+
+	for i, line := range lineList {
+		expectedLine := expectedLineList[i]
+		if line != expectedLine {
+			t.Errorf("Unexpected line at index %v, expected '%s', actual '%s", i, expectedLine, line)
+		}
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -226,4 +227,33 @@ func processArchive(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfI
 	err := exportArgs.writeFinalWebpage(tmpl, archivePath)
 	wg.Done()
 	return err
+}
+
+func tagSort(itemList []jsfItem) (map[string][]jsfItem, []string) {
+	res := make(map[string][]jsfItem)
+	tagList := make([]string, 0)
+	for _, ji := range itemList {
+		for _, tag := range ji.Tags {
+			if len(res[tag]) == 0 && len(tag) > 0 {
+				tagList = append(tagList, tag)
+			}
+			res[tag] = append(res[tag], ji)
+		}
+	}
+	sort.Strings(tagList)
+	return res, tagList
+}
+
+func tagsPageLines(itemList []jsfItem) []string {
+	outputLines := make([]string, 0)
+	tagMap, tagList := tagSort(itemList)
+	for _, tag := range tagList {
+		outputLines = append(outputLines, fmt.Sprintf("<h3>%v</h3>", strings.Title(tag)))
+		outputLines = append(outputLines, "<ul>")
+		for _, ji := range tagMap[tag] {
+			outputLines = append(outputLines, fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", ji.URL, ji.Title))
+		}
+		outputLines = append(outputLines, "</ul>")
+	}
+	return outputLines
 }
