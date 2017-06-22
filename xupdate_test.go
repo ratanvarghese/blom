@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -324,6 +325,57 @@ func TestArchiveSeperator(t *testing.T) {
 		}
 		if sepText != s.sepText {
 			t.Errorf("Wrong seperation text on (%v,%v), expected %v, actual %v", s.gt1, s.gt2, s.sepText, sepText)
+		}
+	}
+}
+
+func TestArchiveLinesEmpty(t *testing.T) {
+	lineList := archiveLines(nil)
+	if len(lineList) > 0 {
+		t.Errorf("Got %v with nil input.", lineList)
+	}
+}
+
+func TestArchiveLinesNonempty(t *testing.T) {
+	t0, _ := time.Parse("2006-01-02", "1972-03-01")
+	t1, _ := time.Parse("2006-01-02", "1972-03-02")
+	t2, _ := time.Parse("2006-01-02", "1972-03-03")
+	itemList := make([]jsfItem, 3)
+
+	itemList[0].DatePublished = t0.Format(time.RFC3339)
+	itemList[0].Title = "item0 Title"
+	itemList[0].URL = "http://ratan.blog/0"
+	itemList[1].DatePublished = t1.Format(time.RFC3339)
+	itemList[1].Title = "item1 Title"
+	itemList[1].URL = "http://ratan.blog/1"
+	itemList[2].DatePublished = t2.Format(time.RFC3339)
+	itemList[2].Title = "item2 Title"
+	itemList[2].URL = "http://ratan.blog/2"
+
+	lineList := archiveLines(itemList)
+
+	expectedLineList := []string{
+		"<h3>Hippocrates & Aldrin Day, 3 AT</h3>",
+		"<ul>",
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[0].URL, itemList[0].Title),
+		"</ul>",
+		"<h3>Imhotep, 3 AT</h3>",
+		"<ul>",
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[1].URL, itemList[1].Title),
+		fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", itemList[2].URL, itemList[2].Title),
+		"</ul>",
+	}
+
+	expectedLen := len(expectedLineList)
+	actualLen := len(lineList)
+	if expectedLen != actualLen {
+		t.Errorf("Unexpected line count, expected %v, actual %v", expectedLen, actualLen)
+	}
+
+	for i, line := range lineList {
+		expectedLine := expectedLineList[i]
+		if line != expectedLine {
+			t.Errorf("Unexpected value at index %v, expected '%s', actual '%s'", i, expectedLine, line)
 		}
 	}
 }
