@@ -178,7 +178,7 @@ func TestJsfMainInit(t *testing.T) {
 	if jf.Version != jsfVersion {
 		t.Errorf("Wrong version, expected '%s', actual '%s'", jsfVersion, jf.Version)
 	}
-	if jf.Title != hostRawURL {
+	if jf.Title != blogTitle {
 		t.Errorf("Wrong title, expected '%s', actual '%s'", blogTitle, jf.Title)
 	}
 	if jf.HomePageURL != hostRawURL {
