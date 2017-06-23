@@ -161,7 +161,8 @@ func writeJsf(feedList []jsfMain, blogPath string) error {
 func processHomepage(tmpl *template.Template, wg *sync.WaitGroup, latest jsfItem, blogPath string, ch chan<- error) {
 	var exportArgs articleExport
 	published, _ := time.Parse(time.RFC3339, latest.DatePublished)
-	exportArgs.init(published, latest.Title, []byte(latest.ContentHTML))
+	permalink := fmt.Sprintf("<br /><a href=\"%s\">[Permalink]</a>", latest.URL)
+	exportArgs.init(published, latest.Title, []byte(latest.ContentHTML+permalink))
 	err := exportArgs.writeFinalWebpage(tmpl, blogPath)
 	if err != nil {
 		ch <- err
