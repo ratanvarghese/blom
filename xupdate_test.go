@@ -179,7 +179,7 @@ func TestJsfMainInit(t *testing.T) {
 		t.Errorf("Wrong version, expected '%s', actual '%s'", jsfVersion, jf.Version)
 	}
 	if jf.Title != hostRawURL {
-		t.Errorf("Wrong title, expected '%s', actual '%s'", hostRawURL, jf.Title)
+		t.Errorf("Wrong title, expected '%s', actual '%s'", blogTitle, jf.Title)
 	}
 	if jf.HomePageURL != hostRawURL {
 		t.Errorf("Wrong home URL, expected '%s', actual '%s'", hostRawURL, jf.HomePageURL)
@@ -465,6 +465,30 @@ func TestTagsPageLines(t *testing.T) {
 		expectedLine := expectedLineList[i]
 		if line != expectedLine {
 			t.Errorf("Unexpected line at index %v, expected '%s', actual '%s", i, expectedLine, line)
+		}
+	}
+}
+
+func TestMakeLegacyFeed(t *testing.T) {
+	itemCount := 10
+	itemList := make([]jsfItem, itemCount)
+	for i := range itemList {
+		itemList[i].URL = strconv.Itoa(i)
+		itemList[i].ContentHTML = strconv.Itoa(i * 10)
+	}
+
+	res := makeLegacyFeed(itemList)
+	resLen := len(res.Items)
+	if resLen != itemCount {
+		t.Errorf("Unexpected item count, expected %v, actual %v", itemCount, resLen)
+	}
+
+	for i, resItem := range res.Items {
+		if resItem.Id != itemList[i].URL {
+			t.Errorf("Unexpected ID at index %v, expected '%s', actual '%s'", i, itemList[i].URL, resItem.Id)
+		}
+		if resItem.Description != itemList[i].ContentHTML {
+			t.Errorf("Unexpected content at index %v, expected '%s', actual '%s", i, itemList[i].ContentHTML, resItem.Description)
 		}
 	}
 }

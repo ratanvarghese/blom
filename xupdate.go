@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+const blogTitle = "ratan.blog"
 const jsfVersion = "https://jsonfeed.org/version/1"
 const jsfPath = "feeds/json"
 const atomPath = "feeds/atom"
@@ -95,7 +96,7 @@ func buildItemList(tmpl *template.Template, blogPath string) ([]jsfItem, error) 
 
 func (jf *jsfMain) init() error {
 	jf.Version = jsfVersion
-	jf.Title = hostRawURL
+	jf.Title = blogTitle
 	jf.HomePageURL = hostRawURL
 
 	hostURL, err := url.Parse(hostRawURL)
@@ -156,13 +157,15 @@ func writeJsf(feedList []jsfMain, blogPath string) error {
 	return nil
 }
 
-func processHomepage(tmpl *template.Template, wg *sync.WaitGroup, latest jsfItem, blogPath string) error {
+func processHomepage(tmpl *template.Template, wg *sync.WaitGroup, latest jsfItem, blogPath string, ch chan<- error) {
 	var exportArgs articleExport
 	published, _ := time.Parse(time.RFC3339, latest.DatePublished)
 	exportArgs.init(published, latest.Title, []byte(latest.ContentHTML))
 	err := exportArgs.writeFinalWebpage(tmpl, blogPath)
+	if err != nil {
+		ch <- err
+	}
 	wg.Done()
-	return err
 }
 
 func archiveSeperator(gt1 time.Time, gt2 time.Time) (bool, string) {
@@ -217,7 +220,7 @@ func archiveLines(itemList []jsfItem) []string {
 	return outputLines
 }
 
-func processArchive(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string) error {
+func processArchive(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string, ch chan<- error) {
 	var exportArgs articleExport
 	var published time.Time
 
@@ -226,8 +229,10 @@ func processArchive(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfI
 	exportArgs.Date = template.HTML("")
 	archivePath := filepath.Join(blogPath, "archive")
 	err := exportArgs.writeFinalWebpage(tmpl, archivePath)
+	if err != nil {
+		ch <- err
+	}
 	wg.Done()
-	return err
 }
 
 func tagSort(itemList []jsfItem) (map[string][]jsfItem, []string) {
@@ -259,7 +264,7 @@ func tagsPageLines(itemList []jsfItem) []string {
 	return outputLines
 }
 
-func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string) error {
+func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string, ch chan<- error) {
 	var exportArgs articleExport
 	var published time.Time
 
@@ -268,8 +273,10 @@ func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem
 	exportArgs.Date = template.HTML("")
 	tagsPath := filepath.Join(blogPath, "tags")
 	err := exportArgs.writeFinalWebpage(tmpl, tagsPath)
+	if err != nil {
+		ch <- err
+	}
 	wg.Done()
-	return err
 }
 
 func fromJsfItem(gi *feeds.Item, ji jsfItem) {
@@ -277,13 +284,13 @@ func fromJsfItem(gi *feeds.Item, ji jsfItem) {
 	gi.Link = &feeds.Link{Href: ji.URL}
 	gi.Created, _ = time.Parse(time.RFC3339, ji.DatePublished)
 	gi.Updated, _ = time.Parse(time.RFC3339, ji.DateModified)
-	gi.Id = ji.ID
+	gi.Id = ji.URL
 	gi.Description = ji.ContentHTML
 }
 
 func makeLegacyFeed(itemList []jsfItem) feeds.Feed {
 	var gf feeds.Feed
-	gf.Title = defaultHomePage
+	gf.Title = blogTitle
 	gf.Link = &feeds.Link{Href: siteURL}
 	gf.Created = time.Now()
 
@@ -296,16 +303,18 @@ func makeLegacyFeed(itemList []jsfItem) feeds.Feed {
 	return gf
 }
 
-func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string) error {
+func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string, ch chan<- error) {
 	defer wg.Done()
 	gf := makeLegacyFeed(itemList)
 	atom, err := gf.ToAtom()
 	if err != nil {
-		return err
+		ch <- err
+		return
 	}
 	rss, err := gf.ToRss()
 	if err != nil {
-		return err
+		ch <- err
+		return
 	}
 
 	fullAtomPath := filepath.Join(blogPath, atomPath)
@@ -313,9 +322,27 @@ func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string)
 
 	err = ioutil.WriteFile(fullAtomPath, []byte(atom), 0664)
 	if err != nil {
-		return err
+		ch <- err
+		return
 	}
-	return ioutil.WriteFile(fullRssPath, []byte(rss), 0664)
+	err = ioutil.WriteFile(fullRssPath, []byte(rss), 0664)
+	if err != nil {
+		ch <- err
+	}
+}
+
+func processJsf(wg *sync.WaitGroup, itemList []jsfItem, blogPath string, pageLen int, ch chan<- error) {
+	defer wg.Done()
+	feedList, err := pageSplit(itemList, pageLen)
+	if err != nil {
+		ch <- err
+		return
+	}
+	err = writeJsf(feedList, blogPath)
+	if err != nil {
+		ch <- err
+		return
+	}
 }
 
 func processBlog(mainTmpl *template.Template, homeTmpl *template.Template, blogRelativePath string) error {
@@ -327,20 +354,22 @@ func processBlog(mainTmpl *template.Template, homeTmpl *template.Template, blogR
 	itemList, err := buildItemList(mainTmpl, blogPath)
 	sort.Sort(byPublishedDescend(itemList))
 
+	ch := make(chan error)
 	var wg sync.WaitGroup
-	wg.Add(4)
 	if len(itemList) > 0 {
-		go processHomepage(homeTmpl, &wg, itemList[0], blogPath)
+		wg.Add(1)
+		go processHomepage(homeTmpl, &wg, itemList[0], blogPath, ch)
 	}
-	go processLegacyFeeds(&wg, itemList, blogPath)
-	go processTags(mainTmpl, &wg, itemList, blogPath)
-	go processArchive(mainTmpl, &wg, itemList, blogPath)
-
-	defer wg.Wait()
-
-	feedList, err := pageSplit(itemList, 15)
-	if err != nil {
+	wg.Add(4)
+	go processLegacyFeeds(&wg, itemList, blogPath, ch)
+	go processTags(mainTmpl, &wg, itemList, blogPath, ch)
+	go processArchive(mainTmpl, &wg, itemList, blogPath, ch)
+	go processJsf(&wg, itemList, blogPath, 15, ch)
+	wg.Wait()
+	select {
+	case err = <-ch:
 		return err
+	default:
+		return nil
 	}
-	return writeJsf(feedList, blogPath)
 }
