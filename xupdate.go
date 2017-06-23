@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+const xupdateMode = "xupdate"
 const blogTitle = "ratan.blog"
 const jsfVersion = "https://jsonfeed.org/version/1"
 const jsfPath = "feeds/json"

@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+const defaultTemplate = "../../template.html"
 const articleMode = "article"
 const templateFile = "template.html"
 const siteURL = "http://ratan.blog"

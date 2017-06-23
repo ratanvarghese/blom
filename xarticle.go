@@ -49,7 +49,6 @@ const contentFileMD = "content.md"
 const contentFileHTML = "content.html"
 const itemFile = "item.json"
 const finalWebpageFile = "index.html"
-const defaultTemplate = "../../template.html"
 
 func (ja *jsfAttachment) init(basename string, article string, fileStart []byte) error {
 	ja.MIMEType = http.DetectContentType(fileStart)
