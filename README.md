@@ -1,60 +1,96 @@
-# Blom, the Content Manager (A WORK IN PROGRESS)
+# Blom, the Content Manager
 
-## In General
-
-Blom is the content manager for [my blog](http://ratan.blog). Other blogs should probably avoid using it, until I heavily refactor the code.
+Blom is the content manager for [my blog](http://ratan.blog). Other blogs should probably avoid using it.
 
 Blom does the following tasks:
 
- * Takes file information from the blog administrator
- * Converts articles formatted in Markdown to articles formatted in HTML
- * Sends articles formatted in HTML through a template, allowing a static site to have a unified layout
+ * Takes title and tag information from the blog administrator
+ * Sends articles through a template, allowing a static site to have a unified layout
  * Generates XML, Atom and JSON feeds
  * Generates a homepage with the latest content
  * Generates a chronological archive (Using the months of the [tranquility calendar](https://github.com/ratanvarghese/tqtime))
  * Generates an archive organized by tags
- * If run through a cron job, it can update every page on the site to show the current date
+ * Show the current date (in Tranquility and Gregorian calendars) on every page. (Run blom through a cron job to stay up to date)
 
 Notably, blom does not act as a file server. I use a seperate static server for my blog.
 
-Unfortunately, this is written in a manner which makes it difficult for other people to use. Generic content managers are a dime a dozen after all. I wrote this for fun, for knowledge and so that I could stick Tranquility dates everywhere.
+Unfortunately, blom is written in a manner which makes it difficult for other people to use. Generic content managers are a dime a dozen after all. I wrote this for fun, for knowledge and so that I could stick Tranquility dates everywhere.
 
-Here are some features not yet implemented:
+Here are some features not yet implemented, that I might add in the future:
 
  * The ability to use hostnames other than my blog.
- * The ability to use directory structures other than the one I currently use for my blog.
- * Automated testing. This doesn't really count as a feature, but nonetheless it is not available.
  * The ability to disable Tranquility dates.
- * Automatic GZIP compression or HTML/CSS minification. (On my blog, the document size is dwarfed by the font file size... even when using a Unicode subset)
- * Any concurrency at all. There are definitely stages where parallelism or concurrency could be used, but are not.
+ * Automatic GZIP compression
+ * Automatic HTML/CSS minification.
+ * Including the article modification date in the article's page.
+ * Having the content for multiple articles on the home page.
+ * Including more JSON Feed metadata
+ * Generating pages of the JSON Feed based on article size (currently, every 15 articles is a page)
 
-As of the writing of this README, I am trying to refactor/rewrite the code into a more general, testable form. However, since that work is not strictly necessary for my blog to function, my mind could wander...
+I don't see any of these as necessary for my blog right now. 
 
-The refactoring could be followed by slight changes in the directory structure of my blog, mostly regarding attachments. I will be sure to keep article permalinks functional.
-
-## Actually Using Blom
-
-At the root level of your site, there must be a directory for each article. There must be a `template.html` one level up from the root directory of the site. The following variables must exist in the `template.html`:
+## Template Variables
+The following variables are recognized for [HTML templates](https://golang.org/pkg/text/template):
 
  * {{.Title}}
  * {{.Today}} (the server date)
  * {{.Date}} (the publication date of the current article)
  * {{.ContentHTML}}
 
-The article content (not including the title) must be placed in a `content.md` or `content.html` in this directory. Make one of those directories your working directory and run the following.
+Note that the dates will be multiple lines: one line for the Tranquility date, and one for the Gregorian date.
 
-    blom article -title YourTitleHere -attach comma,seperated,files,to,attach -tags comma,seperated,tags
+## Directory structure
+Here is an example of a directory structure blom can understand:
 
-Your attachments must be in the same folder as the associated article. This will likely change in a future update. If you ever wish to edit your article, change the `content.md`. If you never had a `content.md` and do not wish to add one, then change the `content.html`. After the editing run the following.
+	.
+	├── blom
+	├── filetree.txt
+	├── home-template.html
+	├── public
+	│   ├── archive
+	│   │   └── index.html
+	│   ├── feeds
+	│   │   ├── atom
+	│   │   ├── json
+	│   │   └── rss
+	│   ├── hello
+	│   │   ├── attachments
+	│   │   │   └── 1200.jpg
+	│   │   ├── content.html
+	│   │   ├── index.html
+	│   │   └── item.json
+	│   ├── index.html
+	│   ├── markdown
+	│   │   ├── content.html
+	│   │   ├── content.md
+	│   │   ├── index.html
+	│   │   └── item.json
+	│   └── tags
+	│       └── index.html
+	└── template.html
 
-    blom article
+As of the writing of these README, `blom` and `*.template` can be anywhere in the file system. The blog root directory is `public` in this case.
 
-You can overwrite the currently existing tags and attachments by using the associated options to `blom article`.
+The directories `feeds`, `tags` and `archive` must be present, and blom will not create them on its own. All the `index.html`, `item.json` are generated by blom. Files inside `feeds` are also generated by blom. JSON Feed pagination is supported, but not seen in this example. 
 
-Once all your articles are ready to be added to the archives, feeds and possibly the home page, go to the root folder of the site and run the following.
+The directories `hello` and `markdown` are articles. The `hello` article is generated from `content.html` (no other names or locations allowed). The paths of files in the `attachments` directory will be included as attachments to the article in the JSON Feed.
 
-    blom update
+The `markdown` article is generated from `content.md` (no other names or locations allowed). Since `content.md` is present, `content.html` is ignored. This does mean that a `content.md` or `content.html` file will be accessible to visitors of the site. `item.json` will also be accessible. These files shouldn't be deleted if update mode is going to be used on a regular basis.
 
-Run `blom update` every day to ensure that the statements about the current date are correct. (Blom is implemented to use the server time, not the time at the client ... this is a static site after all). I have not tried `blom update` on a large blog yet. It has to search every top-level directory of the site.
+## Article mode
 
-To hide an article from the feeds, homepage and archives, delete the `item.json` that `blom article` generates. Then run `blom update`.
+When `blom article` is run, an `index.html` is generated from a `content.html` or `content.md` (the Markdown file has precedence), with the a template. Additionally a `item.json` is generated. This is essentially a single item of the JSON feed which is built in update mode.
+
+## Update mode
+
+When `blom update` is run
+
+1. A list of every subdirectory of the blog root directory is generated.
+2. Directories with an `item.json` are processed as though article mode were run. A `content.html` or `content.md` must be present for this to succeed. Each article is processed in a seperate goroutine.
+3. If at least one article was found, the homepage (`index.html` in the blog root directory) is generated.
+4. The JSON feed is generated in `feeds/json`. Files of the form `feeds/jsonX`, where X is an integer, will be generated if there are over 15 articles.
+5. The Atom and RSS feeds are generated in `feeds/atom` and `feeds/rss` respectively.
+6. The tags page is generated at `tags/index.html`. Articles with multiple tags are listed multiple times, so this can get big.
+7. The archive page is generated at `archive/index.html`. Articles are sorted by Tranquility month, not by any Gregorian calendar unit.
+
+Note that steps 3 to 7 are each run in seperate goroutines: if one of those steps fail, the others will continue.
