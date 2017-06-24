@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -491,4 +492,39 @@ func TestMakeLegacyFeed(t *testing.T) {
 			t.Errorf("Unexpected content at index %v, expected '%s', actual '%s", i, itemList[i].ContentHTML, resItem.Description)
 		}
 	}
+}
+
+func TestProcessHomepage(t *testing.T) {
+	templateStr := "{{.Title}}\n{{.Date}}\n{{.Today}}\n{{.ContentHTML}}"
+	tmpl := template.New("Whatever")
+	tmpl.Parse(templateStr)
+
+	blogPath, _ := setupBlog(t, []byte("Fake!"), []byte("Fake!"), 0, 0)
+	var ji jsfItem
+	ji.Title = "Test title"
+	ji.DatePublished = time.Now().Format(time.RFC3339)
+	ji.ContentHTML = "Test content"
+
+	ch := make(chan error)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go processHomepage(tmpl, &wg, ji, blogPath, ch)
+	wg.Wait()
+	select {
+	case err := <-ch:
+		t.Errorf("Error (%s) when all parameters valid.", err.Error())
+	default:
+
+	}
+	finalPagePath := filepath.Join(blogPath, finalWebpageFile)
+	finalPageContent, err := ioutil.ReadFile(finalPagePath)
+	if err != nil {
+		t.Errorf("Error (%s) reading home page.", err.Error())
+	}
+
+	permalink := fmt.Sprintf("<br /><a href=\"%s\">[Permalink]</a>", ji.URL)
+	if !strings.Contains(string(finalPageContent), permalink) {
+		t.Errorf("Permalink not found in page:\n%s", finalPageContent)
+	}
+	teardownArticlePath(t, blogPath)
 }
