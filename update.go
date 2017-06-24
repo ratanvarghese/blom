@@ -7,20 +7,22 @@ import (
 	"github.com/ratanvarghese/tqtime"
 	"html/template"
 	"io/ioutil"
+	"net/url"
 	"os"
-	"path"
+	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 const updateMode = "update"
-const defaultVersion = "https://jsonfeed.org/version/1"
-const defaultHomePage = "ratan.blog"
-const jfPath = "feeds/json"
+const blogTitle = "ratan.blog"
+const jsfVersion = "https://jsonfeed.org/version/1"
+const jsfPath = "feeds/json"
 const atomPath = "feeds/atom"
 const rssPath = "feeds/rss"
-const pageLen = 15
 
 type jsfMain struct {
 	Version     string    `json:"version"`
@@ -31,182 +33,208 @@ type jsfMain struct {
 	Items       []jsfItem `json:"items"`
 }
 
-type byDatePublished []jsfItem
+type jsfItemErr struct {
+	item jsfItem
+	err  error
+}
 
-func (b byDatePublished) Len() int {
+type byPublishedDescend []jsfItem
+
+func (b byPublishedDescend) Len() int {
 	return len(b)
 }
 
-func (b byDatePublished) Swap(i, j int) {
+func (b byPublishedDescend) Swap(i, j int) {
 	b[i], b[j] = b[j], b[i]
 }
 
-func (b byDatePublished) Less(i, j int) bool {
+func (b byPublishedDescend) Less(i, j int) bool {
 	ti, _ := time.Parse(time.RFC3339, b[i].DatePublished)
 	tj, _ := time.Parse(time.RFC3339, b[j].DatePublished)
 	return ti.After(tj)
 }
 
-func noFrillsArticle() articleArgs {
-	var args articleArgs
-	template := defaultTemplate
-	blank := ""
-	args.attach = &blank
-	args.title = &blank
-	args.tags = &blank
-	args.template = &template
-	return args
-}
-
-func makeItemList() []jsfItem {
-	jiList := make([]jsfItem, 0)
-	dir, err := ioutil.ReadDir(".")
+func findArticlePaths(blogPath string) ([]string, error) {
+	blogDir, err := ioutil.ReadDir(blogPath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	for _, folder := range dir {
-		itemInFolder := path.Join(folder.Name(), itemFile)
-		if _, err := os.Stat(itemInFolder); os.IsNotExist(err) {
-			continue
+	itemPaths := make([]string, 0)
+	for _, folder := range blogDir {
+		curFolderPath := filepath.Join(blogPath, folder.Name())
+		curFolderItemPath := filepath.Join(curFolderPath, itemFile)
+		if _, err := os.Stat(curFolderItemPath); err == nil {
+			itemPaths = append(itemPaths, curFolderPath)
 		}
-		if err := os.Chdir(folder.Name()); err != nil {
-			continue
-		}
-		args := noFrillsArticle()
-		buildArticle(args)
-		if err := os.Chdir(".."); err != nil {
-			panic(err)
-		}
-		itemFileContent, err := ioutil.ReadFile(itemInFolder)
-		if err != nil {
-			panic(err)
-		}
-		var ji jsfItem
-		err = json.Unmarshal(itemFileContent, &ji)
-		if err != nil {
-			panic(err)
-		}
-		jiList = append(jiList, ji)
-
 	}
-	return jiList
+	return itemPaths, nil
 }
 
-func defaultJsfMain() jsfMain {
-	var jf jsfMain
-	jf.Version = defaultVersion
-	jf.HomePageURL = defaultHomePage
-	jf.Title = defaultHomePage
-	jf.FeedURL = path.Join(defaultHomePage, jfPath)
-	return jf
+func channeledProcessArticle(tmpl *template.Template, articlePath string, ch chan<- jsfItemErr) {
+	item, err := processArticle(tmpl, articlePath, "", "")
+	ch <- jsfItemErr{item, err}
 }
 
-func paginatedPrint(itemList []jsfItem) {
-	jf := defaultJsfMain()
-	listLen := len(itemList)
-	for i := 0; i < listLen; i += pageLen {
-		pageNum := i / pageLen
-		pageEnd := i + pageLen
-		if listLen >= pageEnd {
-			jf.NextURL = fmt.Sprintf("%v%v", jf.FeedURL, pageNum+1)
-		} else {
-			pageEnd = listLen
+func buildItemList(tmpl *template.Template, blogPath string) ([]jsfItem, error) {
+	articlePaths, err := findArticlePaths(blogPath)
+	if err != nil {
+		return nil, err
+	}
+	itemList := make([]jsfItem, len(articlePaths))
+	ch := make(chan jsfItemErr)
+	for _, articlePath := range articlePaths {
+		go channeledProcessArticle(tmpl, articlePath, ch)
+	}
+	for i := range itemList {
+		res := <-ch
+		if res.err != nil {
+			return nil, res.err
 		}
-		jf.Items = itemList[i:pageEnd]
-		curPath := jfPath
-		if pageNum > 0 {
-			curPath = fmt.Sprintf("%v%v", curPath, pageNum)
+		itemList[i] = res.item
+	}
+	return itemList, nil
+}
+
+func (jf *jsfMain) init() error {
+	jf.Version = jsfVersion
+	jf.Title = blogTitle
+	jf.HomePageURL = hostRawURL
+
+	hostURL, err := url.Parse(hostRawURL)
+	if err != nil {
+		return err
+	}
+
+	URLRelativeToHost, err := url.Parse(jsfPath)
+	if err != nil {
+		return err
+	}
+
+	jf.FeedURL = hostURL.ResolveReference(URLRelativeToHost).String()
+	return nil
+}
+
+func pageSplit(itemList []jsfItem, pageLen int) ([]jsfMain, error) {
+	itemCount := len(itemList)
+	feedCount := ((itemCount - 1) / pageLen) + 1
+	res := make([]jsfMain, feedCount)
+	for i := range res {
+		err := res[i].init()
+		if err != nil {
+			return res, err
+		}
+		pageStart := i * pageLen
+		pageEnd := (i + 1) * pageLen
+		if pageEnd > itemCount {
+			pageEnd = itemCount
+		}
+		res[i].Items = itemList[pageStart:pageEnd]
+		if i < (feedCount - 1) {
+			res[i].NextURL = res[i].FeedURL + strconv.Itoa(i+1)
+		}
+	}
+	return res, nil
+}
+
+func writeJsf(feedList []jsfMain, blogPath string) error {
+	for i, feed := range feedList {
+		curPath := filepath.Join(blogPath, jsfPath)
+		if i > 0 {
+			curPath += strconv.Itoa(i)
 		}
 		f, err := os.Create(curPath)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		enc := json.NewEncoder(f)
 		enc.SetEscapeHTML(false)
 		enc.SetIndent("", "\t")
-		err = enc.Encode(jf)
+		err = enc.Encode(feed)
 		if err != nil {
-			panic(err)
+			return err
 		}
+		f.Close()
 	}
+	return nil
 }
 
-func makeHomepage(latestItem jsfItem) {
-	args := noFrillsArticle()
-	templateFile := "../template.html"
-	args.template = &templateFile
+func processHomepage(tmpl *template.Template, wg *sync.WaitGroup, latest jsfItem, blogPath string, ch chan<- error) {
+	var exportArgs articleExport
+	published, _ := time.Parse(time.RFC3339, latest.DatePublished)
+	permalink := fmt.Sprintf("<br /><a href=\"%s\">[Permalink]</a>", latest.URL)
+	exportArgs.init(published, latest.Title, []byte(latest.ContentHTML+permalink))
+	err := exportArgs.writeFinalWebpage(tmpl, blogPath)
+	if err != nil {
+		ch <- err
+	}
+	wg.Done()
+}
 
-	newContent := fmt.Sprintf("%s<br /><a href=\"%s\">[Permalink]</a>", latestItem.ContentHTML, latestItem.URL)
-	runTemplate(latestItem, args, newContent)
+func archiveSeperator(gt1 time.Time, gt2 time.Time) (bool, string) {
+	g1Year := gt1.Year()
+	g1YearDay := gt1.YearDay()
+	tq1Year := tqtime.Year(g1Year, g1YearDay)
+	tq1Mon := tqtime.Month(g1Year, g1YearDay)
+	tq1Day := tqtime.Day(g1Year, g1YearDay)
+
+	g2Year := gt2.Year()
+	g2YearDay := gt2.YearDay()
+	tq2Year := tqtime.Year(g2Year, g2YearDay)
+	tq2Mon := tqtime.Month(g2Year, g2YearDay)
+	tq2Day := tqtime.Day(g2Year, g2YearDay)
+
+	isSpecialDay := (tq2Mon == tqtime.SpecialDay)
+
+	var seperatorText string
+	if tq2Day == tqtime.AldrinDay || tq2Mon == tqtime.Hippocrates { //A feature of this calendar which is annoying for archives
+		seperatorText = fmt.Sprintf("<h3>Hippocrates & Aldrin Day, %d AT</h3>", tq2Year)
+		if (tq1Mon == tqtime.Hippocrates || tq1Day == tqtime.AldrinDay) && tq1Year == tq2Year {
+			return false, seperatorText
+		}
+	} else if isSpecialDay {
+		seperatorText = fmt.Sprintf("<h3>%s, %d AT</h3>", tqtime.DayName(tq2Day), tq2Year)
+	} else {
+		seperatorText = fmt.Sprintf("<h3>%s, %d AT</h3>", tq2Mon.String(), tq2Year)
+	}
+	needSeperation := (tq1Year != tq2Year) || (tq1Mon != tq2Mon) || (isSpecialDay && (tq1Day != tq2Day))
+	return needSeperation, seperatorText
 }
 
 func archiveLines(itemList []jsfItem) []string {
-	var gt1 time.Time
+	if len(itemList) < 1 {
+		return nil
+	}
+	var t1 time.Time //intentionally starting at zero value, always a different year than first article.
 	outputLines := make([]string, 0)
 	for i, ji := range itemList {
-		g1Year := gt1.Year()
-		g1YearDay := gt1.YearDay()
-		tq1Year := tqtime.Year(g1Year, g1YearDay)
-		tq1Mon := tqtime.Month(g1Year, g1YearDay)
-		tq1Day := tqtime.Day(g1Year, g1YearDay)
-
-		gt2, _ := time.Parse(time.RFC3339, ji.DatePublished)
-		g2Year := gt2.Year()
-		g2YearDay := gt2.YearDay()
-		tq2Year := tqtime.Year(g2Year, g2YearDay)
-		tq2Mon := tqtime.Month(g2Year, g2YearDay)
-		tq2Day := tqtime.Day(g2Year, g2YearDay)
-
-		isSpecialDay := (tq2Mon == tqtime.SpecialDay)
-
-		if (tq1Year != tq2Year) || (tq1Mon != tq2Mon) || (isSpecialDay && (tq1Day != tq2Day)) {
-			if !gt1.IsZero() {
-				outputLines = append(outputLines, "<ul>")
+		t2, _ := time.Parse(time.RFC3339, ji.DatePublished)
+		if sep, sepText := archiveSeperator(t1, t2); sep {
+			if i > 0 { //The start of a section is the end of the previous section, unless *no* previous section.
+				outputLines = append(outputLines, "</ul>")
 			}
-			if isSpecialDay {
-				outputLines = append(outputLines, fmt.Sprintf("<h3>%v, %v AT</h3>", tqtime.DayName(tq2Day), tq2Year))
-			} else {
-				outputLines = append(outputLines, fmt.Sprintf("<h3>%v, %v AT</h3>", tq2Mon.String(), tq2Year))
-			}
+			outputLines = append(outputLines, sepText)
 			outputLines = append(outputLines, "<ul>")
 		}
 		outputLines = append(outputLines, fmt.Sprintf("<li><a href=\"%v\">%v</a></li>", ji.URL, ji.Title))
-		gt1 = gt2
-		if i == (len(itemList) - 1) {
-			outputLines = append(outputLines, "</ul>")
-		}
+		t1 = t2
 	}
+	outputLines = append(outputLines, "</ul>")
 	return outputLines
 }
 
-func printArchive(itemList []jsfItem) {
-	lineList := archiveLines(itemList)
-	if err := os.Chdir("archive"); err != nil {
-		panic(err)
-	}
+func processArchive(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string, ch chan<- error) {
+	var exportArgs articleExport
+	var published time.Time
 
-	var articleE articleExport
-	articleE.Title = "Archive"
-	articleE.Date = template.HTML("")
-	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
-	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
-
-	tmpl, err := template.ParseFiles("../../template.html")
+	contentLines := archiveLines(itemList)
+	exportArgs.init(published, "Archive", []byte(strings.Join(contentLines, "\n")))
+	exportArgs.Date = template.HTML("")
+	archivePath := filepath.Join(blogPath, "archive")
+	err := exportArgs.writeFinalWebpage(tmpl, archivePath)
 	if err != nil {
-		panic(err)
+		ch <- err
 	}
-	f, err := os.Create(outputWebpage)
-	if err != nil {
-		panic(err)
-	}
-	err = tmpl.Execute(f, articleE)
-	if err != nil {
-		panic(err)
-	}
-
-	if err := os.Chdir(".."); err != nil {
-		panic(err)
-	}
+	wg.Done()
 }
 
 func tagSort(itemList []jsfItem) (map[string][]jsfItem, []string) {
@@ -238,89 +266,112 @@ func tagsPageLines(itemList []jsfItem) []string {
 	return outputLines
 }
 
-func printTagsPage(itemList []jsfItem) {
-	lineList := tagsPageLines(itemList)
-	if err := os.Chdir("tags"); err != nil {
-		panic(err)
-	}
+func processTags(tmpl *template.Template, wg *sync.WaitGroup, itemList []jsfItem, blogPath string, ch chan<- error) {
+	var exportArgs articleExport
+	var published time.Time
 
-	var articleE articleExport
-	articleE.Title = "Tags"
-	articleE.Date = template.HTML("")
-	articleE.Today = template.HTML(fmt.Sprintf("Today is %s.", dualDateFormat(time.Now().Format(time.RFC3339))))
-	articleE.ContentHTML = template.HTML(strings.Join(lineList, "\n"))
-
-	tmpl, err := template.ParseFiles("../../template.html")
+	contentLines := tagsPageLines(itemList)
+	exportArgs.init(published, "Tags", []byte(strings.Join(contentLines, "\n")))
+	exportArgs.Date = template.HTML("")
+	tagsPath := filepath.Join(blogPath, "tags")
+	err := exportArgs.writeFinalWebpage(tmpl, tagsPath)
 	if err != nil {
-		panic(err)
+		ch <- err
 	}
-	f, err := os.Create(outputWebpage)
-	if err != nil {
-		panic(err)
-	}
-	err = tmpl.Execute(f, articleE)
-	if err != nil {
-		panic(err)
-	}
-
-	if err := os.Chdir(".."); err != nil {
-		panic(err)
-	}
+	wg.Done()
 }
 
-func jfItemToGorilla(ji jsfItem) feeds.Item {
-	var gi feeds.Item
+func fromJsfItem(gi *feeds.Item, ji jsfItem) {
 	gi.Title = ji.Title
 	gi.Link = &feeds.Link{Href: ji.URL}
 	gi.Created, _ = time.Parse(time.RFC3339, ji.DatePublished)
 	gi.Updated, _ = time.Parse(time.RFC3339, ji.DateModified)
 	gi.Id = ji.URL
 	gi.Description = ji.ContentHTML
-	return gi
 }
 
-func legacyFeeds(itemList []jsfItem) {
+func makeLegacyFeed(itemList []jsfItem) feeds.Feed {
 	var gf feeds.Feed
-	gf.Title = defaultHomePage
-	gf.Link = &feeds.Link{Href: siteURL}
+	gf.Title = blogTitle
+	gf.Link = &feeds.Link{Href: hostRawURL}
 	gf.Created = time.Now()
 
-	gfItemList := make([]feeds.Item, len(itemList))
-	gfItemPtrList := make([]*feeds.Item, len(itemList))
+	gfItemList := make([]*feeds.Item, len(itemList))
 	for i, ji := range itemList {
-		gfItemList[i] = jfItemToGorilla(ji)
-		gfItemPtrList[i] = &(gfItemList[i])
+		gfItemList[i] = new(feeds.Item)
+		fromJsfItem(gfItemList[i], ji)
 	}
-	gf.Items = gfItemPtrList
+	gf.Items = gfItemList
+	return gf
+}
+
+func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string, ch chan<- error) {
+	defer wg.Done()
+	gf := makeLegacyFeed(itemList)
 	atom, err := gf.ToAtom()
 	if err != nil {
-		panic(err)
+		ch <- err
+		return
 	}
-
 	rss, err := gf.ToRss()
 	if err != nil {
-		panic(err)
+		ch <- err
+		return
 	}
 
-	err = ioutil.WriteFile(atomPath, []byte(atom), 0664)
+	fullAtomPath := filepath.Join(blogPath, atomPath)
+	fullRssPath := filepath.Join(blogPath, atomPath)
+
+	err = ioutil.WriteFile(fullAtomPath, []byte(atom), 0664)
 	if err != nil {
-		panic(err)
+		ch <- err
+		return
 	}
-	err = ioutil.WriteFile(rssPath, []byte(rss), 0664)
+	err = ioutil.WriteFile(fullRssPath, []byte(rss), 0664)
 	if err != nil {
-		panic(err)
+		ch <- err
 	}
 }
 
-func doUpdate() {
-	jfItems := makeItemList()
-	sort.Sort(byDatePublished(jfItems))
-
-	if len(jfItems) > 0 {
-		makeHomepage(jfItems[0])
+func processJsf(wg *sync.WaitGroup, itemList []jsfItem, blogPath string, pageLen int, ch chan<- error) {
+	defer wg.Done()
+	feedList, err := pageSplit(itemList, pageLen)
+	if err != nil {
+		ch <- err
+		return
 	}
-	paginatedPrint(jfItems)
-	printArchive(jfItems)
-	printTagsPage(jfItems)
-	legacyFeeds(jfItems)
+	err = writeJsf(feedList, blogPath)
+	if err != nil {
+		ch <- err
+		return
+	}
+}
+
+func processBlog(mainTmpl *template.Template, homeTmpl *template.Template, blogRelativePath string) error {
+	blogPath, err := filepath.Abs(blogRelativePath)
+	if err != nil {
+		return err
+	}
+
+	itemList, err := buildItemList(mainTmpl, blogPath)
+	sort.Sort(byPublishedDescend(itemList))
+
+	ch := make(chan error)
+	var wg sync.WaitGroup
+	if len(itemList) > 0 {
+		wg.Add(1)
+		go processHomepage(homeTmpl, &wg, itemList[0], blogPath, ch)
+	}
+	wg.Add(4)
+	go processLegacyFeeds(&wg, itemList, blogPath, ch)
+	go processTags(mainTmpl, &wg, itemList, blogPath, ch)
+	go processArchive(mainTmpl, &wg, itemList, blogPath, ch)
+	go processJsf(&wg, itemList, blogPath, 15, ch)
+	wg.Wait()
+	select {
+	case err = <-ch:
+		return err
+	default:
+		return nil
+	}
 }
