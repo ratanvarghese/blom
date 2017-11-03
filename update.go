@@ -320,7 +320,7 @@ func processLegacyFeeds(wg *sync.WaitGroup, itemList []jsfItem, blogPath string,
 	}
 
 	fullAtomPath := filepath.Join(blogPath, atomPath)
-	fullRssPath := filepath.Join(blogPath, atomPath)
+	fullRssPath := filepath.Join(blogPath, rssPath)
 
 	err = ioutil.WriteFile(fullAtomPath, []byte(atom), 0664)
 	if err != nil {
