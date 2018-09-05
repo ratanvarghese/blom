@@ -1,5 +1,7 @@
 # Blom, the Content Manager
 
+**This project is deprecated, the replacement is [here](https://github.com/ratanvarghese/blom.sh).**
+
 Blom is the content manager for [my blog](http://ratan.blog). Other blogs should probably avoid using it.
 
 Blom does the following tasks:
